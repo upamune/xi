@@ -1,11 +1,9 @@
 [tools]
 bun = "1.3"
 biome = "1.9"
+lefthook = "latest"
+"github:steveyegge/beads" = "latest"
 
 [env]
 _.path = ["./node_modules/.bin"]
-
-[git-hooks]
-pre-commit = "bun run check"
-pre-push = "bun run test"
 
