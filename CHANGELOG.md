@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.1.1](https://github.com/upamune/xi/compare/v0.1.0...v0.1.1) - 2026-02-14
+- feat: APIキー未設定時のエラーハンドリング改善 by @upamune in https://github.com/upamune/xi/pull/8
+- rename: プロジェクト名を zi から xi にリネーム by @upamune in https://github.com/upamune/xi/pull/10
+
 ## [v0.1.0](https://github.com/upamune/xi/commits/v0.1.0) - 2026-02-14
 - bun compile 対応 + Ctrl-D 終了 by @upamune in https://github.com/upamune/xi/pull/2
 - streamText にツール定義を渡してエージェントがツールを使えるように修正 by @upamune in https://github.com/upamune/xi/pull/3
