@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { parseCliArgs } from "../src/cli.js";
+import { parseCliArgs, printHelp, printVersion } from "../src/cli.js";
+import { NAME, VERSION } from "../src/config/index.js";
 
 describe("parseCliArgs", () => {
 	describe("positional prompt arguments", () => {
@@ -232,6 +233,8 @@ describe("parseCliArgs", () => {
 				resume: null,
 				provider: null,
 				model: null,
+				systemPrompt: null,
+				appendSystemPrompt: null,
 				noSession: false,
 				print: false,
 				help: false,
@@ -239,5 +242,61 @@ describe("parseCliArgs", () => {
 				prompt: null,
 			});
 		});
+	});
+});
+
+describe("help and version output", () => {
+	test("should lock help output format", () => {
+		const logs: string[] = [];
+		const originalLog = console.log;
+		console.log = (value?: unknown) => {
+			logs.push(String(value ?? ""));
+		};
+		try {
+			printHelp();
+		} finally {
+			console.log = originalLog;
+		}
+
+		expect(logs).toEqual([
+			`${NAME} v${VERSION} - A minimal, fully-trackable coding agent
+
+USAGE:
+  zi [OPTIONS] [PROMPT]
+
+OPTIONS:
+  -c, --continue      Continue from last session
+  -r, --resume <ID>   Resume specific session by ID
+  --provider <NAME>   LLM provider (anthropic, openai, kimi)
+  --model <MODEL>     Model to use
+  --system-prompt <TEXT>         Replace default system prompt
+  --append-system-prompt <TEXT>  Append instructions to system prompt
+  --no-session        Run without creating a session
+  -p, --print         Print mode (non-interactive, output only)
+  -h, --help          Show this help message
+  -v, --version       Show version information
+
+EXAMPLES:
+  zi "Write a hello world program"
+  zi -c "Add error handling"
+  zi --provider openai --model gpt-4 "Explain this code"
+  zi -r abc123 "Continue from session"
+`,
+		]);
+	});
+
+	test("should lock version output format", () => {
+		const logs: string[] = [];
+		const originalLog = console.log;
+		console.log = (value?: unknown) => {
+			logs.push(String(value ?? ""));
+		};
+		try {
+			printVersion();
+		} finally {
+			console.log = originalLog;
+		}
+
+		expect(logs).toEqual([`${NAME} v${VERSION}`]);
 	});
 });
