@@ -1,0 +1,52 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "f8505111f266",
+  "strategy": "manual-commit",
+  "branch": "rename-zi-to-xi",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".github/workflows/release.yml",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "README.md",
+    "biome.json",
+    "bun.lock",
+    "docs/CLI_IMPLEMENTATION_PLAN.md",
+    "docs/CLI_INTERFACE_GAP.md",
+    "docs/DESIGN.md",
+    "docs/TREE_SESSION_PLAN.md",
+    "docs/overlay-fs.md",
+    "docs/plans/2026-02-14-bun-compile-fix-design.md",
+    "package.json",
+    "src/agent/session.ts",
+    "src/agent/system-prompt.ts",
+    "src/cli.ts",
+    "src/config/index.ts",
+    "src/fs/overlay-agentfs.ts",
+    "src/index.ts",
+    "src/subcommands.ts",
+    "test/cli.test.ts",
+    "test/config.test.ts",
+    "test/input-ingestion.test.ts",
+    "test/overlay-agentfs.test.ts",
+    "test/session.test.ts",
+    "test/subcommands.test.ts",
+    "test/system-prompt.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/f8/505111f266/0/metadata.json",
+      "transcript": "/f8/505111f266/0/full.jsonl",
+      "context": "/f8/505111f266/0/context.md",
+      "content_hash": "/f8/505111f266/0/content_hash.txt",
+      "prompt": "/f8/505111f266/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 58,
+    "cache_creation_tokens": 102436,
+    "cache_read_tokens": 5600409,
+    "output_tokens": 6758,
+    "api_call_count": 54
+  }
+}

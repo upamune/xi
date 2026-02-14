@@ -1,0 +1,5 @@
+このプロジェクトを zi から xi にリネームしてほしい。
+
+---
+
+checkout / commit / push / create a pr
