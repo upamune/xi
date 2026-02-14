@@ -6,6 +6,7 @@ import type { Session } from "./session.js";
 export interface AgentConfig {
 	systemPrompt?: string;
 	maxRetries?: number;
+	maxToolIterations?: number;
 }
 
 export interface AgentOptions {
@@ -22,6 +23,13 @@ export interface AgentResponse {
 		args: Record<string, unknown>;
 		result?: unknown;
 	}>;
+}
+
+export interface ToolCallResult {
+	toolCallId: string;
+	toolName: string;
+	args: Record<string, unknown>;
+	result: unknown;
 }
 
 export class Agent {
@@ -42,23 +50,36 @@ export class Agent {
 		this.messages.push({ role: "user", content: message });
 
 		const maxRetries = this.config.maxRetries ?? 3;
+		const maxToolIterations = this.config.maxToolIterations ?? 10;
 		let retries = 0;
+		let content = "";
+		const allToolCalls: AgentResponse["toolCalls"] = [];
 
 		while (retries < maxRetries) {
 			try {
-				const stream = await this.provider.streamText(this.messages);
+				let iteration = 0;
 
-				let content = "";
-				const toolCalls: AgentResponse["toolCalls"] = [];
+				while (iteration < maxToolIterations) {
+					const stream = await this.provider.streamText(this.messages);
 
-				for await (const chunk of stream.textStream) {
-					content += chunk;
-				}
+					let iterationContent = "";
+					const toolCalls: ToolCallResult[] = [];
 
-				const result = await stream;
-				const calls = (await result.toolCalls) ?? [];
+					for await (const chunk of stream.textStream) {
+						iterationContent += chunk;
+					}
 
-				if (calls.length > 0) {
+					const result = await stream;
+					const calls = (await result.toolCalls) ?? [];
+
+					if (calls.length === 0) {
+						content = iterationContent;
+						this.messages.push({ role: "assistant", content: iterationContent });
+						return { content, toolCalls: allToolCalls.length > 0 ? allToolCalls : undefined };
+					}
+
+					const toolInvocations = [];
+
 					for (const call of calls) {
 						const toolName = call.toolName as ToolName;
 						const tool = this.tools.get(toolName);
@@ -69,17 +90,42 @@ export class Agent {
 
 						const toolArgs = "input" in call ? (call.input as Record<string, unknown>) : {};
 						const toolResult = await tool.execute(toolArgs);
+
+						const toolCallId = call.toolCallId ?? `${toolName}-${Date.now()}`;
 						toolCalls.push({
+							toolCallId,
+							toolName,
+							args: toolArgs,
+							result: toolResult,
+						});
+
+						allToolCalls.push({
 							name: toolName,
 							args: toolArgs,
 							result: toolResult,
 						});
+
+						toolInvocations.push({
+							toolCallId,
+							toolName,
+							args: toolArgs,
+							state: "result" as const,
+							result: toolResult,
+						});
 					}
+
+					this.messages.push({
+						role: "assistant",
+						content: iterationContent,
+						toolInvocations,
+					} as ModelMessage);
+
+					iteration++;
 				}
 
+				content = "Max tool iterations reached";
 				this.messages.push({ role: "assistant", content });
-
-				return { content, toolCalls: toolCalls.length > 0 ? toolCalls : undefined };
+				return { content, toolCalls: allToolCalls };
 			} catch (error) {
 				retries++;
 				if (retries >= maxRetries) {
