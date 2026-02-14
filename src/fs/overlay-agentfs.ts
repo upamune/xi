@@ -31,7 +31,7 @@ function nodeStatsToAgentFs(s: import("node:fs").Stats): Stats {
 	};
 }
 
-const MANIFEST_PATH = "/__zi_manifest.json";
+const MANIFEST_PATH = "/__xi_manifest.json";
 
 export class OverlayAgentFS implements FileSystem {
 	private modifiedFiles = new Set<string>();

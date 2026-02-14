@@ -10,7 +10,7 @@ import {
 } from "../src/agent/session.js";
 
 describe("Session", () => {
-	const tempDir = join("/tmp", `zi-session-test-${Date.now()}`);
+	const tempDir = join("/tmp", `xi-session-test-${Date.now()}`);
 
 	beforeEach(() => {
 		if (existsSync(tempDir)) {
@@ -24,18 +24,18 @@ describe("Session", () => {
 	});
 
 	describe("createSession", () => {
-		test("should create session with .zi/sessions/{id}.db path", async () => {
+		test("should create session with .xi/sessions/{id}.db path", async () => {
 			const session = await createSession("test-session-1", tempDir);
 
 			expect(session.id).toBe("test-session-1");
-			expect(session.path).toBe(join(tempDir, ".zi/sessions/test-session-1.db"));
+			expect(session.path).toBe(join(tempDir, ".xi/sessions/test-session-1.db"));
 			expect(existsSync(session.path)).toBe(true);
 		});
 
 		test("should create sessions directory if not exists", async () => {
 			await createSession("test-session-2", tempDir);
 
-			expect(existsSync(join(tempDir, ".zi/sessions"))).toBe(true);
+			expect(existsSync(join(tempDir, ".xi/sessions"))).toBe(true);
 		});
 
 		test("should return session with fs, kv, tools, and close", async () => {

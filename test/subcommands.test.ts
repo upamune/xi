@@ -7,20 +7,20 @@ import { runSubcommand } from "../src/subcommands.js";
 describe("subcommands", () => {
 	let cwd: string;
 	let globalDir: string;
-	let originalZiDir: string | undefined;
+	let originalXiDir: string | undefined;
 
 	beforeEach(async () => {
-		cwd = await mkdtemp(join(tmpdir(), "zi-subcommands-cwd-"));
-		globalDir = await mkdtemp(join(tmpdir(), "zi-subcommands-global-"));
-		originalZiDir = process.env.ZI_DIR;
-		process.env.ZI_DIR = globalDir;
+		cwd = await mkdtemp(join(tmpdir(), "xi-subcommands-cwd-"));
+		globalDir = await mkdtemp(join(tmpdir(), "xi-subcommands-global-"));
+		originalXiDir = process.env.XI_DIR;
+		process.env.XI_DIR = globalDir;
 	});
 
 	afterEach(async () => {
-		if (originalZiDir === undefined) {
-			delete process.env.ZI_DIR;
+		if (originalXiDir === undefined) {
+			delete process.env.XI_DIR;
 		} else {
-			process.env.ZI_DIR = originalZiDir;
+			process.env.XI_DIR = originalXiDir;
 		}
 		await rm(cwd, { recursive: true, force: true });
 		await rm(globalDir, { recursive: true, force: true });

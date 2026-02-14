@@ -1,21 +1,21 @@
-# zi
+# xi
 
 A minimal, fully-trackable coding agent.
 
 ## Overview
 
-zi is a minimal coding agent that prioritizes auditability and reproducibility. Every operation—file reads, writes, edits, and bash commands—is logged in a single SQLite database through AgentFS.
+xi is a minimal coding agent that prioritizes auditability and reproducibility. Every operation—file reads, writes, edits, and bash commands—is logged in a single SQLite database through AgentFS.
 
 ## Philosophy
 
-**Everything is traceable.** Unlike other agents where operations scatter across filesystems and logs, zi captures everything in one place:
+**Everything is traceable.** Unlike other agents where operations scatter across filesystems and logs, xi captures everything in one place:
 
 - Every file operation
 - Every bash command
 - Every tool call
 - Complete timeline of agent activity
 
-**Minimal by design.** zi provides four tools—read, write, edit, bash—and nothing more. Extensions are possible but not required.
+**Minimal by design.** xi provides four tools—read, write, edit, bash—and nothing more. Extensions are possible but not required.
 
 **Safe by default.** Just Bash provides a sandboxed environment with no access to the host filesystem. AgentFS ensures all writes go through a controlled path.
 
@@ -23,7 +23,7 @@ zi is a minimal coding agent that prioritizes auditability and reproducibility. 
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    zi CLI                           │
+│                    xi CLI                           │
 │                  (Bun + TypeScript)                 │
 ├─────────────────────────────────────────────────────┤
 │                   TUI Layer                         │
@@ -47,7 +47,7 @@ zi is a minimal coding agent that prioritizes auditability and reproducibility. 
                       │
                       ▼
         ┌─────────────────────────┐
-        │   .zi/sessions/*.db     │
+        │   .xi/sessions/*.db     │
         │   (SQLite - 全履歴)      │
         └─────────────────────────┘
 ```
@@ -74,21 +74,21 @@ Additional providers can be added by extending the provider registry.
 ## Quick Start
 
 ```bash
-bun install -g zi
+bun install -g xi
 
 # Set API key
 export ANTHROPIC_API_KEY=sk-ant-...
 
 # Start interactive session
-zi
+xi
 ```
 
 ## Session Storage
 
-All session data lives in `.zi/sessions/{session-id}.db`:
+All session data lives in `.xi/sessions/{session-id}.db`:
 
 ```
-.zi/
+.xi/
 ├── sessions/
 │   ├── abc123.db      # Session 1
 │   └── def456.db      # Session 2
@@ -102,9 +102,9 @@ Each SQLite database contains:
 - Tool call audit log
 - Timeline of all operations
 
-## Why zi?
+## Why xi?
 
-| Feature | zi | Other Agents |
+| Feature | xi | Other Agents |
 |---------|-----|--------------|
 | Auditability | Full SQL queryable history | Scattered logs |
 | Reproducibility | Copy .db file, replay state | Hard to reproduce |
@@ -114,7 +114,7 @@ Each SQLite database contains:
 
 ## Inspiration
 
-zi is inspired by:
+xi is inspired by:
 - **[pi](https://github.com/badlogic/pi-mono)** - Minimal coding agent philosophy
 - **[AgentFS](https://github.com/tursodatabase/agentfs)** - SQLite-based agent filesystem
 - **[Just Bash](https://github.com/vercel-labs/just-bash)** - Sandboxed bash for agents

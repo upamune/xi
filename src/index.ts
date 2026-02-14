@@ -246,7 +246,7 @@ async function main(): Promise<void> {
 					const display = f.startsWith(cwdPrefix) ? f.slice(cwdPrefix.length) : f;
 					console.log(`  D ${display}`);
 				}
-				console.log(`\nTo review and apply:\n  zi apply ${sessionId}`);
+				console.log(`\nTo review and apply:\n  xi apply ${sessionId}`);
 			}
 			await session.close().catch(() => {});
 			process.exit(0);

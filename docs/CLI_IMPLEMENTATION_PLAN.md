@@ -1,4 +1,4 @@
-# CLI Implementation Plan (`zi` parity with `pi`, excluding extension-flag system)
+# CLI Implementation Plan (`xi` parity with `pi`, excluding extension-flag system)
 
 ## Scope
 Implement items 1-8 only:

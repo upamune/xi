@@ -1,9 +1,9 @@
-# zi Design Document
+# xi Design Document
 
 ## Architecture Overview
 
 ```
-zi/
+xi/
 ├── src/
 │   ├── index.ts              # Entry point
 │   ├── cli.ts                # CLI argument parsing
@@ -63,7 +63,7 @@ interface Session {
   tools: ToolLog;        // Tool call history via AgentFS
   
   id: string;
-  path: string;          // .zi/sessions/{id}.db
+  path: string;          // .xi/sessions/{id}.db
 }
 ```
 
@@ -212,9 +212,9 @@ async function createSession(id: string) {
 ```
 
 All file operations in Just Bash now go through AgentFS:
-- `cat file.txt` → reads from `.zi/sessions/{id}.db`
-- `echo "hello" > file.txt` → writes to `.zi/sessions/{id}.db`
-- `rm file.txt` → marks as deleted in `.zi/sessions/{id}.db`
+- `cat file.txt` → reads from `.xi/sessions/{id}.db`
+- `echo "hello" > file.txt` → writes to `.xi/sessions/{id}.db`
+- `rm file.txt` → marks as deleted in `.xi/sessions/{id}.db`
 
 ### 6. TUI (`src/tui/`)
 
@@ -275,7 +275,7 @@ LLM Provider streams response
          Just Bash / AgentFS
               │
               ▼
-         Logged to .zi/sessions/{id}.db
+         Logged to .xi/sessions/{id}.db
               │
               ▼
          Return result to LLM
@@ -313,7 +313,7 @@ Return to LLM
 
 ## Configuration
 
-### Global Config (`~/.zi/settings.json`)
+### Global Config (`~/.xi/settings.json`)
 
 ```json
 {
@@ -324,7 +324,7 @@ Return to LLM
 }
 ```
 
-### Project Config (`.zi/settings.json`)
+### Project Config (`.xi/settings.json`)
 
 ```json
 {
@@ -338,7 +338,7 @@ Return to LLM
 
 | Variable | Description |
 |----------|-------------|
-| `ZI_DIR` | Override config directory (default: `~/.zi`) |
+| `XI_DIR` | Override config directory (default: `~/.xi`) |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `KIMI_API_KEY` | Kimi API key |
@@ -346,14 +346,14 @@ Return to LLM
 ## CLI Commands
 
 ```bash
-zi                      # Start interactive mode
-zi -c                   # Continue last session
-zi -r                   # Resume session (selector)
-zi --no-session         # Ephemeral mode (no save)
-zi --provider openai    # Use specific provider
-zi --model gpt-4o       # Use specific model
-zi -p "message"         # Print mode (non-interactive)
-zi --help               # Show help
+xi                     # Start interactive mode
+xi-c                   # Continue last session
+xi-r                   # Resume session (selector)
+xi--no-session         # Ephemeral mode (no save)
+xi--provider openai    # Use specific provider
+xi--model gpt-4o       # Use specific model
+xi-p "message"         # Print mode (non-interactive)
+xi--help               # Show help
 ```
 
 ## Session File Format
@@ -416,7 +416,7 @@ try {
 
 ## Future Extensions
 
-zi is designed to be extensible:
+xiis designed to be extensible:
 
 1. **Skills** - Markdown files with instructions (like pi)
 2. **Extensions** - TypeScript plugins for custom tools

@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 export const VERSION = "0.1.0";
-export const NAME = "zi";
+export const NAME = "xi";
 
 export interface Config {
 	provider: "anthropic" | "openai" | "kimi";
@@ -17,11 +17,11 @@ export const DEFAULT_CONFIG: Config = {
 	thinking: "medium",
 };
 
-const GLOBAL_CONFIG_DIR = join(homedir(), ".zi");
-const PROJECT_CONFIG_DIR = ".zi";
+const GLOBAL_CONFIG_DIR = join(homedir(), ".xi");
+const PROJECT_CONFIG_DIR = ".xi";
 
 function getConfigDir(): string {
-	return process.env.ZI_DIR ?? GLOBAL_CONFIG_DIR;
+	return process.env.XI_DIR ?? GLOBAL_CONFIG_DIR;
 }
 
 function getConfigPath(): string {

@@ -70,7 +70,7 @@ const agentfs = await AgentFS.openWith(db);
 
 ### 3. `package.json` (変更)
 
-- `bin.zi`: `./src/cli.ts` → `./src/index.ts`
+- `bin.xi`: `./src/cli.ts` → `./src/index.ts`
 - `scripts.dev`: `bun run src/cli.ts` → `bun run src/index.ts`
 - `scripts.build`: `./src/cli.ts` → `./src/index.ts`
 
@@ -82,8 +82,8 @@ const agentfs = await AgentFS.openWith(db);
 
 1. `bun run src/index.ts --help` で help が表示される
 2. `bun run src/index.ts --version` でバージョンが表示される
-3. `bun build ./src/index.ts --compile --target=bun-darwin-arm64 --outfile dist/zi` で compile 成功
-4. `./dist/zi --help` で compiled バイナリの動作確認
+3. `bun build ./src/index.ts --compile --target=bun-darwin-arm64 --outfile dist/xi` で compile 成功
+4. `./dist/xi --help` で compiled バイナリの動作確認
 5. `bun test` で既存テストが通る
 
 ## リスク

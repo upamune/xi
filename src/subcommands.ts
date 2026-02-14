@@ -25,7 +25,7 @@ function getPackageStorePath(scope: "global" | "local", cwd: string): string {
 	if (scope === "global") {
 		return join(getGlobalConfigDir(), "packages.json");
 	}
-	return join(cwd, ".zi", "packages.json");
+	return join(cwd, ".xi", "packages.json");
 }
 
 function loadPackageStore(path: string): PackageStore {

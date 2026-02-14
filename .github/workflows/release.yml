@@ -11,11 +11,11 @@ jobs:
       matrix:
         include:
           - target: bun-linux-x64
-            artifact: zi-linux-x64
+            artifact: xi-linux-x64
           - target: bun-darwin-arm64
-            artifact: zi-darwin-arm64
+            artifact: xi-darwin-arm64
           - target: bun-windows-x64
-            artifact: zi-windows-x64.exe
+            artifact: xi-windows-x64.exe
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
