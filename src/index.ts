@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Bash } from "just-bash";
 import { Agent } from "./agent/index.js";
-import { createProvider } from "./agent/provider.js";
+import { createProvider, type ProviderName } from "./agent/provider.js";
 import { createSession, listSessions, sessionExists } from "./agent/session.js";
 import { parseCliArgs, printHelp, printVersion } from "./cli.js";
 import { loadConfig } from "./config/index.js";
@@ -32,7 +32,14 @@ async function main(): Promise<void> {
 	const config = await loadConfig();
 
 	if (args.provider) {
-		config.provider = args.provider as "anthropic" | "openai" | "kimi";
+		const validProviders: ProviderName[] = ["anthropic", "openai", "kimi"];
+		if (!validProviders.includes(args.provider as ProviderName)) {
+			console.error(
+				`Invalid provider: ${args.provider}. Must be one of: ${validProviders.join(", ")}`
+			);
+			process.exit(1);
+		}
+		config.provider = args.provider as ProviderName;
 	}
 	if (args.model) {
 		config.model = args.model;
