@@ -3,7 +3,7 @@
   "checkpoint_id": "72285e32b378",
   "strategy": "manual-commit",
   "branch": "fix-bug",
-  "checkpoints_count": 1,
+  "checkpoints_count": 2,
   "files_touched": [
     "src/agent/index.ts",
     "src/agent/provider.ts",
@@ -20,10 +20,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 45,
-    "cache_creation_tokens": 166716,
-    "cache_read_tokens": 2684746,
-    "output_tokens": 1596,
-    "api_call_count": 41
+    "input_tokens": 35,
+    "cache_creation_tokens": 39658,
+    "cache_read_tokens": 3170317,
+    "output_tokens": 1304,
+    "api_call_count": 31
   }
 }
