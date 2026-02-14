@@ -1,10 +1,10 @@
 {
-	"name": "zi",
+	"name": "xi",
 	"version": "0.1.0",
 	"description": "A minimal, fully-trackable coding agent",
 	"type": "module",
 	"bin": {
-		"zi": "./src/index.ts"
+		"xi": "./src/index.ts"
 	},
 	"main": "./src/index.ts",
 	"scripts": {

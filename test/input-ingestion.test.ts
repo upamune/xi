@@ -10,7 +10,7 @@ import {
 
 describe("input-ingestion", () => {
 	test("should expand @file arguments", async () => {
-		const dir = await mkdtemp(join(tmpdir(), "zi-input-"));
+		const dir = await mkdtemp(join(tmpdir(), "xi-input-"));
 		try {
 			const file = join(dir, "prompt.txt");
 			await writeFile(file, "from-file", "utf-8");

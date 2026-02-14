@@ -1,10 +1,10 @@
 # AGENTS.md
 
-Coding agent instructions for the zi project.
+Coding agent instructions for the xi project.
 
 ## Project Overview
 
-zi is a minimal, fully-trackable coding agent built with Bun + TypeScript. All operations (read/write/edit/bash) are logged to SQLite via AgentFS for complete auditability.
+xi is a minimal, fully-trackable coding agent built with Bun + TypeScript. All operations (read/write/edit/bash) are logged to SQLite via AgentFS for complete auditability.
 
 ## Build Commands
 
@@ -127,7 +127,7 @@ test/
 
 1. **Tools**: All tools delegate to either Just Bash (`read`, `bash`) or AgentFS SDK (`write`). The `edit` tool reads via bash, replaces in TypeScript, then writes via AgentFS.
 
-2. **Sessions**: Each session is a single SQLite file at `.zi/sessions/{id}.db`. Contains file system, tool logs, and key-value store.
+2. **Sessions**: Each session is a single SQLite file at `.xi/sessions/{id}.db`. Contains file system, tool logs, and key-value store.
 
 3. **Providers**: Use Vercel AI SDK. Supported: `anthropic`, `openai`, `kimi`.
 
@@ -214,7 +214,7 @@ mockTools = {
 
 ## Environment Variables
 
-- `ZI_DIR`: Override config directory (default: `~/.zi`)
+- `XI_DIR`: Override config directory (default: `~/.xi`)
 - `ANTHROPIC_API_KEY`: Anthropic API key
 - `OPENAI_API_KEY`: OpenAI API key
 - `KIMI_API_KEY`: Kimi API key

@@ -20,7 +20,7 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 
 	let prompt =
 		options.customPrompt ??
-		`You are an expert coding assistant operating inside zi, a coding agent harness.
+		`You are an expert coding assistant operating inside xi, a coding agent harness.
 
 Available tools:
 ${tools}

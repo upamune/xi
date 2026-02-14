@@ -165,8 +165,8 @@ describe("parseCliArgs", () => {
 		});
 
 		test("should parse --session-dir flag", () => {
-			const result = parseCliArgs(["--session-dir", "/tmp/zi"]);
-			expect(result.sessionDir).toBe("/tmp/zi");
+			const result = parseCliArgs(["--session-dir", "/tmp/xi"]);
+			expect(result.sessionDir).toBe("/tmp/xi");
 		});
 
 		test("should default session and sessionDir to null", () => {
@@ -408,8 +408,8 @@ describe("help and version output", () => {
 			`${NAME} v${VERSION} - A minimal, fully-trackable coding agent
 
 USAGE:
-  zi [OPTIONS] [PROMPT]
-  zi <COMMAND> [ARGS]
+  xi [OPTIONS] [PROMPT]
+  xi <COMMAND> [ARGS]
 
 COMMANDS:
   install <source> [-l, --local]
@@ -441,14 +441,14 @@ OPTIONS:
   -v, --version       Show version information
 
 EXAMPLES:
-  zi "Write a hello world program"
-  zi @prompt.md
-  cat request.txt | zi --mode json
-  zi -c "Add error handling"
-  zi --provider openai --model gpt-4 "Explain this code"
-  zi --resume --session abc123 "Continue from session"
-  zi --list-models --provider anthropic
-  zi install github:owner/repo
+  xi "Write a hello world program"
+  xi @prompt.md
+  cat request.txt | xi --mode json
+  xi -c "Add error handling"
+  xi --provider openai --model gpt-4 "Explain this code"
+  xi --resume --session abc123 "Continue from session"
+  xi --list-models --provider anthropic
+  xi install github:owner/repo
 `,
 		]);
 	});

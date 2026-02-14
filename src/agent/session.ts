@@ -22,7 +22,7 @@ export interface Session {
 	close(): Promise<void>;
 }
 
-const SESSIONS_DIR = ".zi/sessions";
+const SESSIONS_DIR = ".xi/sessions";
 
 function getSessionsDir(baseDir?: string): string {
 	return join(baseDir ?? process.cwd(), SESSIONS_DIR);

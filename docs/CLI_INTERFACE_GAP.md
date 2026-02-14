@@ -1,15 +1,15 @@
-# CLI Interface Gap: `zi` vs `pi`
+# CLI Interface Gap: `xi` vs `pi`
 
 Last updated: 2026-02-14
 
 ## Scope
 
-- `zi`: `src/cli.ts`, `src/index.ts`
+- `xi`: `src/cli.ts`, `src/index.ts`
 - `pi` (coding-agent): `z/pi-mono/packages/coding-agent/src/cli/args.ts`, `z/pi-mono/packages/coding-agent/src/main.ts`
 
 ## Subcommands
 
-### `zi`
+### `xi`
 
 - Has subcommands:
 1. `install <source> [-l|--local]`
@@ -27,7 +27,7 @@ Last updated: 2026-02-14
 4. `list`
 5. `config`
 
-## Flags Present in `zi`
+## Flags Present in `xi`
 
 1. `-c, --continue`
 2. `-r, --resume <ID>`
@@ -40,7 +40,7 @@ Last updated: 2026-02-14
 9. `-h, --help`
 10. `-v, --version`
 
-## Flags Present in `pi` but Missing in `zi`
+## Flags Present in `pi` but Missing in `xi`
 
 1. `--export <file>`
 2. `--extension, -e <path>`
@@ -56,19 +56,19 @@ Last updated: 2026-02-14
 ## Behavioral Mismatches (Same/Similar Names, Different Semantics)
 
 1. `--model`
-- `zi`: plain model string only.
+- `xi`: plain model string only.
 - `pi`: supports provider-prefixed forms and model resolution behavior (`provider/id`, thinking suffixes).
 
 2. `--print/-p`
-- `zi`: non-interactive text output path only.
+- `xi`: non-interactive text output path only.
 - `pi`: non-interactive mode integrated with `--mode` (`text`, `json`, `rpc`).
 
-## Interface Features in `pi` Missing in `zi` (Not Just Flags)
+## Interface Features in `pi` Missing in `xi` (Not Just Flags)
 
 1. Two-pass argument parsing for extension-provided custom flags.
 2. Runtime extension/skill/theme/prompt-template loading controls.
 
 ## Quick Answer: "サブコマンドは？"
 
-- `zi`: `install`, `remove`, `update`, `list`, `config`
+- `xi`: `install`, `remove`, `update`, `list`, `config`
 - `pi`: `install`, `remove`, `update`, `list`, `config`

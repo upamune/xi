@@ -12,19 +12,19 @@ import {
 } from "../src/config/index.js";
 
 describe("Config", () => {
-	const originalEnv = process.env.ZI_DIR;
-	const tempDir = join("/tmp", `zi-config-test-${Date.now()}`);
-	const tempGlobalConfigDir = join(tempDir, "global-zidir");
+	const originalEnv = process.env.XI_DIR;
+	const tempDir = join("/tmp", `xi-config-test-${Date.now()}`);
+	const tempGlobalConfigDir = join(tempDir, "global-xidir");
 	const tempProjectDir = join(tempDir, "project");
 
 	beforeEach(() => {
-		delete process.env.ZI_DIR;
+		delete process.env.XI_DIR;
 		if (existsSync(tempDir)) {
 			rmSync(tempDir, { recursive: true, force: true });
 		}
 		mkdirSync(tempDir, { recursive: true });
 		mkdirSync(tempGlobalConfigDir, { recursive: true });
-		mkdirSync(join(tempProjectDir, ".zi"), { recursive: true });
+		mkdirSync(join(tempProjectDir, ".xi"), { recursive: true });
 	});
 
 	afterAll(() => {
@@ -32,20 +32,20 @@ describe("Config", () => {
 			rmSync(tempDir, { recursive: true, force: true });
 		}
 		if (originalEnv !== undefined) {
-			process.env.ZI_DIR = originalEnv;
+			process.env.XI_DIR = originalEnv;
 		} else {
-			delete process.env.ZI_DIR;
+			delete process.env.XI_DIR;
 		}
 	});
 
 	describe("loadConfig", () => {
 		test("should return default config when no config files exist", async () => {
-			const emptyConfigDir = join(tempDir, "empty-zidir");
+			const emptyConfigDir = join(tempDir, "empty-xidir");
 			mkdirSync(emptyConfigDir, { recursive: true });
 			const emptyProjectDir = join(tempDir, "empty-project");
 			mkdirSync(emptyProjectDir, { recursive: true });
 
-			process.env.ZI_DIR = emptyConfigDir;
+			process.env.XI_DIR = emptyConfigDir;
 			const config = await loadConfig(emptyProjectDir);
 
 			expect(config).toEqual(DEFAULT_CONFIG);
@@ -53,7 +53,7 @@ describe("Config", () => {
 
 		test("should load global config only", async () => {
 			const globalConfig: Partial<Config> = { provider: "openai", model: "gpt-4" };
-			process.env.ZI_DIR = tempGlobalConfigDir;
+			process.env.XI_DIR = tempGlobalConfigDir;
 			writeFileSync(join(tempGlobalConfigDir, "settings.json"), JSON.stringify(globalConfig));
 
 			const emptyProjectDir = join(tempDir, "empty-project");
@@ -67,11 +67,11 @@ describe("Config", () => {
 
 		test("should load project config only", async () => {
 			const projectConfig: Partial<Config> = { provider: "kimi", thinking: "high" };
-			writeFileSync(join(tempProjectDir, ".zi", "settings.json"), JSON.stringify(projectConfig));
+			writeFileSync(join(tempProjectDir, ".xi", "settings.json"), JSON.stringify(projectConfig));
 
-			const emptyConfigDir = join(tempDir, "empty-zidir2");
+			const emptyConfigDir = join(tempDir, "empty-xidir2");
 			mkdirSync(emptyConfigDir, { recursive: true });
-			process.env.ZI_DIR = emptyConfigDir;
+			process.env.XI_DIR = emptyConfigDir;
 
 			const config = await loadConfig(tempProjectDir);
 
@@ -84,9 +84,9 @@ describe("Config", () => {
 			const globalConfig: Partial<Config> = { provider: "openai", model: "gpt-4" };
 			const projectConfig: Partial<Config> = { model: "gpt-4o", thinking: "low" };
 
-			process.env.ZI_DIR = tempGlobalConfigDir;
+			process.env.XI_DIR = tempGlobalConfigDir;
 			writeFileSync(join(tempGlobalConfigDir, "settings.json"), JSON.stringify(globalConfig));
-			writeFileSync(join(tempProjectDir, ".zi", "settings.json"), JSON.stringify(projectConfig));
+			writeFileSync(join(tempProjectDir, ".xi", "settings.json"), JSON.stringify(projectConfig));
 
 			const config = await loadConfig(tempProjectDir);
 
@@ -96,7 +96,7 @@ describe("Config", () => {
 		});
 
 		test("should handle invalid JSON in config file", async () => {
-			process.env.ZI_DIR = tempGlobalConfigDir;
+			process.env.XI_DIR = tempGlobalConfigDir;
 			writeFileSync(join(tempGlobalConfigDir, "settings.json"), "not valid json {{{");
 
 			const config = await loadConfig();
@@ -107,7 +107,7 @@ describe("Config", () => {
 
 	describe("saveConfig", () => {
 		test("should save to global config by default", async () => {
-			process.env.ZI_DIR = tempGlobalConfigDir;
+			process.env.XI_DIR = tempGlobalConfigDir;
 			writeFileSync(
 				join(tempGlobalConfigDir, "settings.json"),
 				JSON.stringify({ provider: "openai" })
@@ -123,7 +123,7 @@ describe("Config", () => {
 		test("should save to project config when scope is project", async () => {
 			await saveConfig({ provider: "kimi" }, "project", tempProjectDir);
 
-			const saved = JSON.parse(readFileSync(join(tempProjectDir, ".zi", "settings.json"), "utf-8"));
+			const saved = JSON.parse(readFileSync(join(tempProjectDir, ".xi", "settings.json"), "utf-8"));
 			expect(saved.provider).toBe("kimi");
 		});
 
@@ -133,11 +133,11 @@ describe("Config", () => {
 
 			await saveConfig({ thinking: "high" }, "project", newProjectDir);
 
-			expect(existsSync(join(newProjectDir, ".zi", "settings.json"))).toBe(true);
+			expect(existsSync(join(newProjectDir, ".xi", "settings.json"))).toBe(true);
 		});
 
 		test("should merge with existing config", async () => {
-			process.env.ZI_DIR = tempGlobalConfigDir;
+			process.env.XI_DIR = tempGlobalConfigDir;
 			writeFileSync(
 				join(tempGlobalConfigDir, "settings.json"),
 				JSON.stringify({ provider: "openai", model: "gpt-3.5" })
@@ -158,31 +158,31 @@ describe("Config", () => {
 
 			process.cwd = originalCwd;
 
-			expect(existsSync(join(tempProjectDir, ".zi", "settings.json"))).toBe(true);
+			expect(existsSync(join(tempProjectDir, ".xi", "settings.json"))).toBe(true);
 		});
 	});
 
 	describe("getGlobalConfigDir", () => {
 		test("should return default global config dir using homedir", () => {
-			delete process.env.ZI_DIR;
+			delete process.env.XI_DIR;
 
 			const dir = getGlobalConfigDir();
-			expect(dir).toBe(`${homedir()}/.zi`);
+			expect(dir).toBe(`${homedir()}/.xi`);
 		});
 
-		test("should respect ZI_DIR environment variable", () => {
-			process.env.ZI_DIR = "/custom/zi/dir";
+		test("should respect XI_DIR environment variable", () => {
+			process.env.XI_DIR = "/custom/xi/dir";
 
 			const dir = getGlobalConfigDir();
 
-			expect(dir).toBe("/custom/zi/dir");
+			expect(dir).toBe("/custom/xi/dir");
 		});
 	});
 
 	describe("getProjectConfigPath", () => {
 		test("should return project config path with projectDir", () => {
 			const path = getProjectConfigPath("/myproject");
-			expect(path).toBe("/myproject/.zi/settings.json");
+			expect(path).toBe("/myproject/.xi/settings.json");
 		});
 
 		test("should use cwd when projectDir not specified", () => {
@@ -191,7 +191,7 @@ describe("Config", () => {
 
 			const path = getProjectConfigPath();
 
-			expect(path).toBe("/currentwork/.zi/settings.json");
+			expect(path).toBe("/currentwork/.xi/settings.json");
 
 			process.cwd = originalCwd;
 		});

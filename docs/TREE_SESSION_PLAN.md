@@ -2,11 +2,11 @@
 
 ## Overview
 
-This document describes the implementation plan for adding tree-structured sessions to zi, based on the design from pi-mono's `SessionManager`.
+This document describes the implementation plan for adding tree-structured sessions to xi, based on the design from pi-mono's `SessionManager`.
 
 ## Current State vs Target State
 
-### Current State (zi)
+### Current State (xi)
 
 ```
 Session (SQLite via AgentFS)
@@ -178,7 +178,7 @@ CREATE TABLE session_entries (
 
 **Option B: Separate JSONL File**
 
-Store in `.zi/sessions/{id}.jsonl` alongside `{id}.db`.
+Store in `.xi/sessions/{id}.jsonl` alongside `{id}.db`.
 
 **Decision:** Option A for simplicity and atomicity.
 
@@ -320,10 +320,10 @@ export interface Session {
 ### 4.1 CLI Flags
 
 ```bash
-zi                       # Start new session
-zi -c                    # Continue most recent
-zi -r                    # Resume (show picker)
-zi --branch <entry-id>   # Start new branch from entry
+xi                      # Start new session
+xi-c                    # Continue most recent
+xi-r                    # Resume (show picker)
+xi--branch <entry-id>   # Start new branch from entry
 ```
 
 ### 4.2 TUI: Tree Navigation

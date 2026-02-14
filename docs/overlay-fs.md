@@ -2,7 +2,7 @@
 
 ## 概要
 
-zi のエージェントはリアルファイルシステムに直接書き込まず、Copy-on-Write (CoW) オーバーレイを通じてファイルを操作する。読み取りは実ファイルにフォールバックし、書き込みは SQLite ベースの delta レイヤーにのみ保存される。
+xi のエージェントはリアルファイルシステムに直接書き込まず、Copy-on-Write (CoW) オーバーレイを通じてファイルを操作する。読み取りは実ファイルにフォールバックし、書き込みは SQLite ベースの delta レイヤーにのみ保存される。
 
 ## アーキテクチャ
 
@@ -20,7 +20,7 @@ zi のエージェントはリアルファイルシステムに直接書き込�
 
 | レイヤー | ストレージ | 役割 |
 |---------|-----------|------|
-| Delta | `.zi/sessions/<id>.db` (SQLite) | エージェントの書き込みを全て保持 |
+| Delta | `.xi/sessions/<id>.db` (SQLite) | エージェントの書き込みを全て保持 |
 | Base | `process.cwd()` の実ディレクトリ | 読み取り専用のフォールバック元 |
 
 ### 操作ごとの振る舞い
@@ -93,7 +93,7 @@ bash と read/write/edit は別々の delta レイヤーを持つ。bash で書�
 
 ### マニフェスト永続化
 
-セッション終了時に `persistManifest()` が呼ばれ、変更ファイルリストを delta 内の `/__zi_manifest.json` に保存する。
+セッション終了時に `persistManifest()` が呼ばれ、変更ファイルリストを delta 内の `/__xi_manifest.json` に保存する。
 
 ```json
 ["/Users/user/project/README.md", "/Users/user/project/src/new-file.ts"]
@@ -114,16 +114,16 @@ bash と read/write/edit は別々の delta レイヤーを持つ。bash で書�
   A src/new-file.ts
 
 To review and apply:
-  zi apply abc123
+  xi apply abc123
 ```
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────┐     ┌────────────┐
-│ zi apply    │ ──→ │ マニフェスト   │ ──→ │ ファイル一覧  │ ──→ │ 実 FS に    │
+│ xi apply    │ ──→ │ マニフェスト   │ ──→ │ ファイル一覧  │ ──→ │ 実 FS に    │
 │ <session-id>│     │ 読み込み      │     │ + 確認       │     │ 書き出し    │
 └─────────────┘     └──────────────┘     └─────────────┘     └────────────┘
 
-$ zi apply abc123
+$ xi apply abc123
 
 Applying session abc123...
 
@@ -135,10 +135,10 @@ Apply these changes? [Y/n] y
 ✓ Applied 2 file(s)
 ```
 
-### `zi apply` の内部処理
+### `xi apply` の内部処理
 
-1. セッション DB (`.zi/sessions/<id>.db`) を開く
-2. `/__zi_manifest.json` から変更ファイルリストを読み込む
+1. セッション DB (`.xi/sessions/<id>.db`) を開く
+2. `/__xi_manifest.json` から変更ファイルリストを読み込む
 3. 各ファイルについて delta の内容を読み出す
 4. 新規 (A) / 修正 (M) を判定して一覧表示
 5. ユーザー確認
@@ -169,4 +169,4 @@ just-bash
 - **Whiteout マーカー**: delta での削除を base に対しても反映する仕組み
 - **bash 統合**: `FileSystem` → `IFileSystem` アダプタで bash と read/write/edit の delta を統合
 - **Write-through モード**: delta と実 FS に同時書き込みするオプション
-- **差分表示**: `zi apply` で unified diff を表示
+- **差分表示**: `xi apply` で unified diff を表示

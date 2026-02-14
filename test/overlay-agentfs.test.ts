@@ -112,7 +112,7 @@ function createMockDelta() {
 }
 
 describe("OverlayAgentFS", () => {
-	const tempDir = join("/tmp", `zi-overlay-test-${Date.now()}`);
+	const tempDir = join("/tmp", `xi-overlay-test-${Date.now()}`);
 
 	beforeEach(() => {
 		rmSync(tempDir, { recursive: true, force: true });
