@@ -31,11 +31,19 @@ export interface ToolCall {
 	result?: unknown;
 }
 
+export interface ToolInvocation {
+	toolCallId: string;
+	toolName: string;
+	args: Record<string, unknown>;
+	state: "partial" | "call" | "result";
+	result?: unknown;
+}
+
 export interface MessageEntry extends SessionEntryBase {
 	type: "message";
 	role: "user" | "assistant" | "tool";
 	content: string | ContentBlock[];
-	toolCalls?: ToolCall[];
+	toolInvocations?: ToolInvocation[];
 	provider?: string;
 	model?: string;
 }

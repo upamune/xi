@@ -113,8 +113,6 @@ export class Agent {
 						return { content, toolCalls: allToolCalls.length > 0 ? allToolCalls : undefined };
 					}
 
-					const toolResults: Array<{ id: string; name: string; result: unknown }> = [];
-
 					for (const call of calls) {
 						if (combinedSignal.aborted) {
 							throw new Error("Aborted");
@@ -143,12 +141,6 @@ export class Agent {
 							args: toolArgs,
 							result: toolResult,
 						});
-
-						toolResults.push({
-							id: toolCallId,
-							name: toolName,
-							result: toolResult,
-						});
 					}
 
 					this.session.sessionManager.appendMessage({
@@ -156,20 +148,14 @@ export class Agent {
 						content: iterationContent,
 						provider: this.provider.name,
 						model: this.provider.model,
-						toolCalls: toolResults.map((t) => ({
-							id: t.id,
-							name: t.name,
-							args: {},
+						toolInvocations: toolCalls.map((t) => ({
+							toolCallId: t.toolCallId,
+							toolName: t.toolName,
+							args: t.args,
+							state: "result" as const,
 							result: t.result,
 						})),
 					});
-
-					for (const tr of toolResults) {
-						this.session.sessionManager.appendMessage({
-							role: "tool",
-							content: JSON.stringify(tr.result),
-						});
-					}
 
 					iteration++;
 				}

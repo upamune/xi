@@ -24,9 +24,34 @@ function generateId(byId: { has(id: string): boolean }): string {
 
 function entryToMessage(entry: MessageEntry): ModelMessage {
 	const content = entry.content;
+
+	if (entry.role === "assistant" && entry.toolInvocations?.length) {
+		return {
+			role: "assistant",
+			content: typeof content === "string" ? content : "",
+			toolInvocations: entry.toolInvocations.map((inv) => ({
+				toolCallId: inv.toolCallId,
+				toolName: inv.toolName,
+				args: inv.args,
+				state: inv.state,
+				result: inv.result,
+			})),
+		} as ModelMessage;
+	}
+
+	if (entry.role === "tool") {
+		const toolCallId = entry.toolInvocations?.[0]?.toolCallId ?? "";
+		return {
+			role: "tool",
+			content: typeof content === "string" ? content : JSON.stringify(content),
+			toolCallId,
+		} as unknown as ModelMessage;
+	}
+
 	if (typeof content === "string") {
 		return { role: entry.role, content } as ModelMessage;
 	}
+
 	return {
 		role: entry.role,
 		content: content.map((block) => {
