@@ -22,6 +22,7 @@ export interface CliArgs {
 	help: boolean;
 	version: boolean;
 	prompt: string | null;
+	promptArgs: string[];
 }
 
 export function parseCliArgs(args: string[] = process.argv.slice(2)): CliArgs {
@@ -127,6 +128,7 @@ export function parseCliArgs(args: string[] = process.argv.slice(2)): CliArgs {
 		help: values.help,
 		version: values.version,
 		prompt,
+		promptArgs: [...positionals],
 	};
 }
 
@@ -159,6 +161,8 @@ OPTIONS:
 
 EXAMPLES:
   zi "Write a hello world program"
+  zi @prompt.md
+  cat request.txt | zi --mode json
   zi -c "Add error handling"
   zi --provider openai --model gpt-4 "Explain this code"
   zi --resume --session abc123 "Continue from session"

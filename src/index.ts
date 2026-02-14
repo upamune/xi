@@ -14,6 +14,7 @@ import {
 	resolveToolSelection,
 } from "./cli-runtime.js";
 import { loadConfig } from "./config/index.js";
+import { buildPromptFromInputs, expandFileArgs, readStdinIfAvailable } from "./input-ingestion.js";
 import { createToolRegistry } from "./tools/index.js";
 import { createTui } from "./tui/index.js";
 
@@ -75,6 +76,19 @@ async function main(): Promise<void> {
 		tools: args.tools,
 		noTools: args.noTools,
 	});
+	let promptArgs: string[] = [];
+	try {
+		promptArgs = await expandFileArgs(args.promptArgs);
+	} catch (error) {
+		console.error(
+			"Failed to read @file argument:",
+			error instanceof Error ? error.message : String(error)
+		);
+		process.exit(1);
+	}
+	const shouldReadStdin = outputMode !== "text" || !args.prompt;
+	const stdinInput = shouldReadStdin ? await readStdinIfAvailable() : null;
+	const prompt = buildPromptFromInputs(promptArgs, stdinInput, " ");
 	const baseDir = args.sessionDir ?? undefined;
 	const resolvedSession = resolveSession({
 		session: args.session,
@@ -120,9 +134,9 @@ async function main(): Promise<void> {
 		},
 	});
 
-	if (args.prompt && outputMode !== "text") {
+	if (prompt && outputMode !== "text") {
 		try {
-			const response = await agent.prompt(args.prompt);
+			const response = await agent.prompt(prompt);
 			if (outputMode === "json") {
 				console.log(
 					JSON.stringify(
@@ -157,14 +171,14 @@ async function main(): Promise<void> {
 		return;
 	}
 
-	if (!args.prompt && outputMode !== "text") {
+	if (!prompt && outputMode !== "text") {
 		console.error("--mode json/rpc requires a prompt");
 		process.exit(1);
 	}
 
-	if (args.prompt) {
+	if (prompt) {
 		try {
-			const response = await agent.prompt(args.prompt);
+			const response = await agent.prompt(prompt);
 
 			console.log("\n--- Response ---");
 			console.log(response.content);

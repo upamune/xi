@@ -7,16 +7,19 @@ describe("parseCliArgs", () => {
 		test("should parse single word prompt", () => {
 			const result = parseCliArgs(["hello"]);
 			expect(result.prompt).toBe("hello");
+			expect(result.promptArgs).toEqual(["hello"]);
 		});
 
 		test("should join multiple positional arguments as prompt", () => {
 			const result = parseCliArgs(["write", "a", "test"]);
 			expect(result.prompt).toBe("write a test");
+			expect(result.promptArgs).toEqual(["write", "a", "test"]);
 		});
 
 		test("should return null when no prompt provided", () => {
 			const result = parseCliArgs([]);
 			expect(result.prompt).toBeNull();
+			expect(result.promptArgs).toEqual([]);
 		});
 	});
 
@@ -339,6 +342,7 @@ describe("parseCliArgs", () => {
 				help: false,
 				version: false,
 				prompt: null,
+				promptArgs: [],
 			});
 		});
 	});
@@ -386,6 +390,8 @@ OPTIONS:
 
 EXAMPLES:
   zi "Write a hello world program"
+  zi @prompt.md
+  cat request.txt | zi --mode json
   zi -c "Add error handling"
   zi --provider openai --model gpt-4 "Explain this code"
   zi --resume --session abc123 "Continue from session"
