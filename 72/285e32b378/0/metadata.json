@@ -3,9 +3,9 @@
   "checkpoint_id": "72285e32b378",
   "session_id": "a74122c0-642f-4325-83e3-391b51bb1913",
   "strategy": "manual-commit",
-  "created_at": "2026-02-14T09:53:15.314176Z",
+  "created_at": "2026-02-14T09:43:12.155141Z",
   "branch": "fix-bug",
-  "checkpoints_count": 2,
+  "checkpoints_count": 1,
   "files_touched": [
     "src/agent/index.ts",
     "src/agent/provider.ts",
@@ -13,24 +13,22 @@
     "src/tools/definitions.ts"
   ],
   "agent": "Claude Code",
-  "transcript_identifier_at_start": "f062dcc5-ad0c-49f9-935f-b2f9252e7223",
-  "checkpoint_transcript_start": 285,
-  "transcript_lines_at_start": 285,
+  "transcript_identifier_at_start": "7b1e9a67-d3b8-4b0c-a999-461318ed3933",
   "token_usage": {
-    "input_tokens": 35,
-    "cache_creation_tokens": 39658,
-    "cache_read_tokens": 3170317,
-    "output_tokens": 1304,
-    "api_call_count": 31
+    "input_tokens": 45,
+    "cache_creation_tokens": 166716,
+    "cache_read_tokens": 2684746,
+    "output_tokens": 1596,
+    "api_call_count": 41
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-14T09:53:14.978698Z",
-    "agent_lines": 0,
-    "human_added": 223,
-    "human_modified": 51,
+    "calculated_at": "2026-02-14T09:43:11.996955Z",
+    "agent_lines": 89,
+    "human_added": 1,
+    "human_modified": 0,
     "human_removed": 0,
-    "total_committed": 274,
-    "agent_percentage": 0
+    "total_committed": 90,
+    "agent_percentage": 98.88888888888889
   },
   "transcript_path": ".claude/projects/-Users-masato-yamamoto-ghq-github-com-upamune-zi/a74122c0-642f-4325-83e3-391b51bb1913.jsonl"
 }
