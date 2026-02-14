@@ -32,3 +32,7 @@ branch 切って
 
 commit して, push して、 create a pr
 
+### Prompt 6
+
+ci コケてる
+

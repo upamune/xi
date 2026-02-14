@@ -5,11 +5,7 @@
   "branch": "feat/bash-fs-overlay-unification",
   "checkpoints_count": 1,
   "files_touched": [
-    "src/agent/session.ts",
-    "src/fs/bash-fs-adapter.ts",
-    "src/fs/overlay-agentfs.ts",
-    "src/index.ts",
-    "src/subcommands.ts"
+    "src/fs/overlay-agentfs.ts"
   ],
   "sessions": [
     {
@@ -21,10 +17,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 161,
-    "cache_creation_tokens": 125814,
-    "cache_read_tokens": 3211220,
-    "output_tokens": 4711,
-    "api_call_count": 46
+    "input_tokens": 11,
+    "cache_creation_tokens": 16312,
+    "cache_read_tokens": 922306,
+    "output_tokens": 768,
+    "api_call_count": 9
   }
 }
