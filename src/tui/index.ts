@@ -7,6 +7,7 @@ import {
 	type MarkdownTheme,
 	ProcessTerminal,
 	TUI,
+	matchesKey,
 } from "@mariozechner/pi-tui";
 import type { Agent, AgentResponse } from "@/agent/index.js";
 
@@ -153,7 +154,11 @@ export class ZiTui {
 		};
 
 		this.tui.addInputListener((data: string) => {
-			if (data === "\x04" && this.editor.getText().trim() === "") {
+			if (matchesKey(data, "ctrl+c")) {
+				this.onExit?.();
+				return { consume: true };
+			}
+			if (matchesKey(data, "ctrl+d") && this.editor.getText().trim() === "") {
 				this.onExit?.();
 				return { consume: true };
 			}
