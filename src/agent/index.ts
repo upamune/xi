@@ -1,4 +1,5 @@
 import type { ModelMessage } from "ai";
+import { getToolDefinitions } from "@/tools/definitions.js";
 import type { ToolName, ToolRegistry } from "@/tools/index.js";
 import { createProvider, type LLMProvider } from "./provider.js";
 import type { Session } from "./session.js";
@@ -86,6 +87,7 @@ export class Agent {
 						messages,
 						systemPrompt: this.config.systemPrompt,
 						abortSignal: combinedSignal,
+						tools: getToolDefinitions(),
 					});
 
 					let iterationContent = "";
@@ -156,6 +158,22 @@ export class Agent {
 							result: t.result,
 						})),
 					});
+
+					for (const tc of toolCalls) {
+						this.session.sessionManager.appendMessage({
+							role: "tool",
+							content: JSON.stringify(tc.result),
+							toolInvocations: [
+								{
+									toolCallId: tc.toolCallId,
+									toolName: tc.toolName,
+									args: tc.args,
+									state: "result" as const,
+									result: tc.result,
+								},
+							],
+						});
+					}
 
 					iteration++;
 				}

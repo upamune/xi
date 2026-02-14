@@ -26,26 +26,30 @@ function entryToMessage(entry: MessageEntry): ModelMessage {
 	const content = entry.content;
 
 	if (entry.role === "assistant" && entry.toolInvocations?.length) {
-		return {
-			role: "assistant",
-			content: typeof content === "string" ? content : "",
-			toolInvocations: entry.toolInvocations.map((inv) => ({
+		const parts: Array<Record<string, unknown>> = [];
+		const textContent = typeof content === "string" ? content : content?.[0]?.text;
+		if (textContent) {
+			parts.push({ type: "text", text: textContent });
+		}
+		for (const inv of entry.toolInvocations) {
+			parts.push({
+				type: "tool-call",
 				toolCallId: inv.toolCallId,
 				toolName: inv.toolName,
-				args: inv.args,
-				state: inv.state,
-				result: inv.result,
-			})),
-		} as ModelMessage;
+				input: inv.args,
+			});
+		}
+		return { role: "assistant", content: parts } as unknown as ModelMessage;
 	}
 
-	if (entry.role === "tool") {
-		const toolCallId = entry.toolInvocations?.[0]?.toolCallId ?? "";
-		return {
-			role: "tool",
-			content: typeof content === "string" ? content : JSON.stringify(content),
-			toolCallId,
-		} as unknown as ModelMessage;
+	if (entry.role === "tool" && entry.toolInvocations?.length) {
+		const parts = entry.toolInvocations.map((inv) => ({
+			type: "tool-result" as const,
+			toolCallId: inv.toolCallId,
+			toolName: inv.toolName,
+			result: inv.result,
+		}));
+		return { role: "tool", content: parts } as unknown as ModelMessage;
 	}
 
 	if (typeof content === "string") {
