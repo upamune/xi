@@ -1,6 +1,6 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { createOpenAI, openai } from "@ai-sdk/openai";
-import { type ModelMessage, type StreamTextResult, streamText } from "ai";
+import { type ModelMessage, type StreamTextResult, streamText, type ToolSet } from "ai";
 import type { Config } from "@/config/index.js";
 
 export type ProviderName = "anthropic" | "openai" | "kimi";
@@ -9,12 +9,13 @@ export interface StreamTextOptions {
 	messages: ModelMessage[];
 	systemPrompt?: string;
 	abortSignal?: AbortSignal;
+	tools?: ToolSet;
 }
 
 export interface LLMProvider {
 	name: ProviderName;
 	model: string;
-	streamText(options: StreamTextOptions): Promise<StreamTextResult<never, never>>;
+	streamText(options: StreamTextOptions): Promise<StreamTextResult<ToolSet, never>>;
 }
 
 const KIMI_BASE_URL = "https://api.moonshot.cn/v1";
@@ -29,6 +30,7 @@ function createAnthropicProvider(model: string): LLMProvider {
 				messages: options.messages,
 				system: options.systemPrompt,
 				abortSignal: options.abortSignal,
+				tools: options.tools,
 			});
 		},
 	};
@@ -44,6 +46,7 @@ function createOpenAIProvider(model: string): LLMProvider {
 				messages: options.messages,
 				system: options.systemPrompt,
 				abortSignal: options.abortSignal,
+				tools: options.tools,
 			});
 		},
 	};
@@ -62,6 +65,7 @@ function createKimiProvider(model: string): LLMProvider {
 				messages: options.messages,
 				system: options.systemPrompt,
 				abortSignal: options.abortSignal,
+				tools: options.tools,
 			});
 		},
 	};
