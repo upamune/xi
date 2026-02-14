@@ -3,6 +3,7 @@ import type { ModelMessage, StreamTextResult } from "ai";
 import { Agent, type AgentConfig } from "../src/agent/index.js";
 import type { LLMProvider } from "../src/agent/provider.js";
 import type { Session } from "../src/agent/session.js";
+import { SessionManager } from "../src/agent/session-manager.js";
 import type { ToolRegistry } from "../src/tools/index.js";
 
 async function* asyncGenerator<T>(items: T[]): AsyncGenerator<T> {
@@ -53,6 +54,7 @@ describe("Agent", () => {
 			fs: {} as Session["fs"],
 			kv: {} as Session["kv"],
 			tools: {} as Session["tools"],
+			sessionManager: SessionManager.inMemory("/test"),
 			close: mock(async () => {}),
 		} as unknown as Session;
 	});

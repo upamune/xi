@@ -2,6 +2,7 @@ import type { ModelMessage } from "ai";
 import type { ToolName, ToolRegistry } from "@/tools/index.js";
 import { createProvider, type LLMProvider } from "./provider.js";
 import type { Session } from "./session.js";
+import type { SessionTreeNode } from "./session-types.js";
 
 export interface AgentConfig {
 	systemPrompt?: string;
@@ -37,7 +38,6 @@ export class Agent {
 	private tools: ToolRegistry;
 	private provider: LLMProvider;
 	private config: AgentConfig;
-	private messages: ModelMessage[] = [];
 	private abortController: AbortController | null = null;
 
 	constructor(options: AgentOptions) {
@@ -54,7 +54,10 @@ export class Agent {
 	}
 
 	async prompt(message: string, signal?: AbortSignal): Promise<AgentResponse> {
-		this.messages.push({ role: "user", content: message });
+		this.session.sessionManager.appendMessage({
+			role: "user",
+			content: message,
+		});
 
 		this.abortController = new AbortController();
 		const combinedSignal = signal
@@ -76,8 +79,11 @@ export class Agent {
 						throw new Error("Aborted");
 					}
 
+					const context = this.session.sessionManager.buildSessionContext();
+					const messages = context.messages;
+
 					const stream = await this.provider.streamText({
-						messages: this.messages,
+						messages,
 						systemPrompt: this.config.systemPrompt,
 						abortSignal: combinedSignal,
 					});
@@ -97,12 +103,17 @@ export class Agent {
 
 					if (calls.length === 0) {
 						content = iterationContent;
-						this.messages.push({ role: "assistant", content: iterationContent });
+						this.session.sessionManager.appendMessage({
+							role: "assistant",
+							content: iterationContent,
+							provider: this.provider.name,
+							model: this.provider.model,
+						});
 						this.abortController = null;
 						return { content, toolCalls: allToolCalls.length > 0 ? allToolCalls : undefined };
 					}
 
-					const toolInvocations = [];
+					const toolResults: Array<{ id: string; name: string; result: unknown }> = [];
 
 					for (const call of calls) {
 						if (combinedSignal.aborted) {
@@ -133,26 +144,43 @@ export class Agent {
 							result: toolResult,
 						});
 
-						toolInvocations.push({
-							toolCallId,
-							toolName,
-							args: toolArgs,
-							state: "result" as const,
+						toolResults.push({
+							id: toolCallId,
+							name: toolName,
 							result: toolResult,
 						});
 					}
 
-					this.messages.push({
+					this.session.sessionManager.appendMessage({
 						role: "assistant",
 						content: iterationContent,
-						toolInvocations,
-					} as ModelMessage);
+						provider: this.provider.name,
+						model: this.provider.model,
+						toolCalls: toolResults.map((t) => ({
+							id: t.id,
+							name: t.name,
+							args: {},
+							result: t.result,
+						})),
+					});
+
+					for (const tr of toolResults) {
+						this.session.sessionManager.appendMessage({
+							role: "tool",
+							content: JSON.stringify(tr.result),
+						});
+					}
 
 					iteration++;
 				}
 
 				content = "Max tool iterations reached";
-				this.messages.push({ role: "assistant", content });
+				this.session.sessionManager.appendMessage({
+					role: "assistant",
+					content,
+					provider: this.provider.name,
+					model: this.provider.model,
+				});
 				this.abortController = null;
 				return { content, toolCalls: allToolCalls };
 			} catch (error) {
@@ -174,11 +202,23 @@ export class Agent {
 	}
 
 	getMessages(): ModelMessage[] {
-		return [...this.messages];
+		return this.session.sessionManager.buildSessionContext().messages;
 	}
 
 	clearMessages(): void {
-		this.messages = [];
+		this.session.sessionManager.resetLeaf();
+	}
+
+	branchFrom(entryId: string): void {
+		this.session.sessionManager.branch(entryId);
+	}
+
+	getSessionTree(): SessionTreeNode[] {
+		return this.session.sessionManager.getTree();
+	}
+
+	getCurrentLeafId(): string | null {
+		return this.session.sessionManager.getLeafId();
 	}
 }
 

@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { AgentFS, type Filesystem, type KvStore, type ToolCalls } from "agentfs-sdk";
+import { SessionManager } from "./session-manager.js";
 
 export interface Session {
 	id: string;
@@ -8,6 +9,7 @@ export interface Session {
 	fs: Filesystem;
 	kv: KvStore;
 	tools: ToolCalls;
+	sessionManager: SessionManager;
 	close(): Promise<void>;
 }
 
@@ -31,8 +33,10 @@ async function ensureSessionsDir(baseDir?: string): Promise<void> {
 export async function createSession(id: string, baseDir?: string): Promise<Session> {
 	await ensureSessionsDir(baseDir);
 	const path = getSessionPath(id, baseDir);
+	const cwd = baseDir ?? process.cwd();
 
 	const agentfs = await AgentFS.open({ path });
+	const sessionManager = SessionManager.create(cwd);
 
 	return {
 		id,
@@ -40,6 +44,7 @@ export async function createSession(id: string, baseDir?: string): Promise<Sessi
 		fs: agentfs.fs,
 		kv: agentfs.kv,
 		tools: agentfs.tools,
+		sessionManager,
 		close: () => agentfs.close(),
 	};
 }
@@ -51,7 +56,9 @@ export async function loadSession(id: string, baseDir?: string): Promise<Session
 		throw new Error(`Session not found: ${id}`);
 	}
 
+	const cwd = baseDir ?? process.cwd();
 	const agentfs = await AgentFS.open({ path });
+	const sessionManager = SessionManager.create(cwd);
 
 	return {
 		id,
@@ -59,6 +66,7 @@ export async function loadSession(id: string, baseDir?: string): Promise<Session
 		fs: agentfs.fs,
 		kv: agentfs.kv,
 		tools: agentfs.tools,
+		sessionManager,
 		close: () => agentfs.close(),
 	};
 }
