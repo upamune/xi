@@ -211,6 +211,10 @@ export class Agent {
 					this.abortController = null;
 					throw new Error("Aborted");
 				}
+				if (isNonRetryableError(error)) {
+					this.abortController = null;
+					throw error;
+				}
 				retries++;
 				if (retries >= maxRetries) {
 					this.abortController = null;
@@ -243,6 +247,18 @@ export class Agent {
 	getCurrentLeafId(): string | null {
 		return this.session.sessionManager.getLeafId();
 	}
+}
+
+const NON_RETRYABLE_ERROR_NAMES = new Set([
+	"AI_LoadAPIKeyError",
+	"MissingApiKeyError",
+]);
+
+export function isNonRetryableError(error: unknown): boolean {
+	if (error instanceof Error && NON_RETRYABLE_ERROR_NAMES.has(error.name)) {
+		return true;
+	}
+	return false;
 }
 
 function buildPromptWithThinking(config: AgentConfig): string | undefined {

@@ -2,6 +2,36 @@ import { basename } from "node:path";
 import type { CliArgs } from "./cli.js";
 import type { ToolName } from "./tools/index.js";
 
+export class MissingApiKeyError extends Error {
+	constructor(provider: string, envVar: string) {
+		super(
+			`APIキーが設定されていません: ${envVar}\n` +
+				`プロバイダー "${provider}" を使用するには環境変数 ${envVar} を設定してください。\n` +
+				`例: export ${envVar}=your-api-key`
+		);
+		this.name = "MissingApiKeyError";
+	}
+}
+
+const PROVIDER_ENV_MAP: Record<string, string> = {
+	anthropic: "ANTHROPIC_API_KEY",
+	openai: "OPENAI_API_KEY",
+	kimi: "KIMI_API_KEY",
+};
+
+export function validateApiKey(
+	provider: string,
+	env: NodeJS.ProcessEnv = process.env
+): void {
+	const envVar = PROVIDER_ENV_MAP[provider];
+	if (!envVar) {
+		return;
+	}
+	if (!env[envVar]) {
+		throw new MissingApiKeyError(provider, envVar);
+	}
+}
+
 export type OutputMode = "text" | "json" | "rpc";
 
 export function resolveOutputMode(args: Pick<CliArgs, "mode" | "print">): OutputMode {

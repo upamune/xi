@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import {
+	MissingApiKeyError,
 	applyApiKeyOverride,
 	filterModels,
 	resolveOutputMode,
 	resolveSession,
 	resolveThinkingLevel,
 	resolveToolSelection,
+	validateApiKey,
 } from "../src/cli-runtime.js";
 
 describe("cli-runtime", () => {
@@ -119,6 +121,42 @@ describe("cli-runtime", () => {
 
 		test("should reject invalid level", () => {
 			expect(() => resolveThinkingLevel("max" as "off")).toThrow("Invalid thinking level: max");
+		});
+	});
+
+	describe("validateApiKey", () => {
+		test("should pass when key is set", () => {
+			const env: NodeJS.ProcessEnv = { ANTHROPIC_API_KEY: "sk-test" };
+			expect(() => validateApiKey("anthropic", env)).not.toThrow();
+		});
+
+		test("should throw MissingApiKeyError when anthropic key is missing", () => {
+			const env: NodeJS.ProcessEnv = {};
+			expect(() => validateApiKey("anthropic", env)).toThrow(MissingApiKeyError);
+		});
+
+		test("should throw MissingApiKeyError when openai key is missing", () => {
+			const env: NodeJS.ProcessEnv = {};
+			expect(() => validateApiKey("openai", env)).toThrow(MissingApiKeyError);
+		});
+
+		test("should throw MissingApiKeyError when kimi key is missing", () => {
+			const env: NodeJS.ProcessEnv = {};
+			expect(() => validateApiKey("kimi", env)).toThrow(MissingApiKeyError);
+		});
+
+		test("should not throw for unknown provider", () => {
+			const env: NodeJS.ProcessEnv = {};
+			expect(() => validateApiKey("unknown-provider", env)).not.toThrow();
+		});
+
+		test("error message should contain env var name", () => {
+			const env: NodeJS.ProcessEnv = {};
+			try {
+				validateApiKey("anthropic", env);
+			} catch (error) {
+				expect((error as Error).message).toContain("ANTHROPIC_API_KEY");
+			}
 		});
 	});
 

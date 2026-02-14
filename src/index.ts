@@ -12,6 +12,7 @@ import {
 	resolveSession,
 	resolveThinkingLevel,
 	resolveToolSelection,
+	validateApiKey,
 } from "./cli-runtime.js";
 import { loadConfig } from "./config/index.js";
 import { BashFsAdapter } from "./fs/bash-fs-adapter.js";
@@ -83,6 +84,13 @@ async function main(): Promise<void> {
 	}
 
 	applyApiKeyOverride(config.provider, args.apiKey);
+
+	try {
+		validateApiKey(config.provider);
+	} catch (error) {
+		console.error(error instanceof Error ? error.message : String(error));
+		process.exit(1);
+	}
 
 	const outputMode = resolveOutputMode(args);
 	const selectedTools = resolveToolSelection({
