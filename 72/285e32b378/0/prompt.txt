@@ -1,0 +1,5 @@
+この AI Agent だけど、read / write / edit / bash がツールとして全く使えないみたい。どうにかしてくれ
+
+---
+
+commit & push & create a pr
