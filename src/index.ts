@@ -2,19 +2,13 @@ import { randomUUID } from "node:crypto";
 import { Bash } from "just-bash";
 import { Agent } from "./agent/index.js";
 import { createProvider, type ProviderName } from "./agent/provider.js";
-import { createSession, listSessions, sessionExists } from "./agent/session.js";
+import { createSession, listSessions, loadSession, sessionExists } from "./agent/session.js";
+import { buildSystemPrompt } from "./agent/system-prompt.js";
 import { parseCliArgs, printHelp, printVersion } from "./cli.js";
+import { applyApiKeyOverride, resolveOutputMode, resolveSession } from "./cli-runtime.js";
 import { loadConfig } from "./config/index.js";
 import { createToolRegistry } from "./tools/index.js";
 import { createTui } from "./tui/index.js";
-
-async function getLastSessionId(): Promise<string | null> {
-	const sessions = listSessions();
-	if (sessions.length === 0) {
-		return null;
-	}
-	return sessions[sessions.length - 1] ?? null;
-}
 
 async function main(): Promise<void> {
 	const args = parseCliArgs();
@@ -45,27 +39,34 @@ async function main(): Promise<void> {
 		config.model = args.model;
 	}
 
-	let sessionId: string;
-	if (args.resume) {
-		if (!sessionExists(args.resume)) {
-			console.error(`Session not found: ${args.resume}`);
-			process.exit(1);
-		}
-		sessionId = args.resume;
-	} else if (args.continue) {
-		const lastSession = await getLastSessionId();
-		if (!lastSession) {
+	applyApiKeyOverride(config.provider, args.apiKey);
+
+	const outputMode = resolveOutputMode(args);
+	const baseDir = args.sessionDir ?? undefined;
+	const resolvedSession = resolveSession({
+		session: args.session,
+		resume: args.resume,
+		continue: args.continue,
+		availableSessions: listSessions(baseDir),
+	});
+
+	const sessionId = resolvedSession.sessionId ?? randomUUID().slice(0, 8);
+	if (resolvedSession.shouldResume) {
+		if (!sessionId) {
 			console.error("No previous session to continue");
 			process.exit(1);
 		}
-		sessionId = lastSession;
-	} else {
-		sessionId = randomUUID().slice(0, 8);
+		if (!sessionExists(sessionId, baseDir)) {
+			console.error(`Session not found: ${sessionId}`);
+			process.exit(1);
+		}
 	}
 
 	const session = args.noSession
-		? await createSession(`temp-${sessionId}`)
-		: await createSession(sessionId);
+		? await createSession(`temp-${sessionId}`, baseDir)
+		: resolvedSession.shouldResume || sessionExists(sessionId, baseDir)
+			? await loadSession(sessionId, baseDir)
+			: await createSession(sessionId, baseDir);
 
 	const bash = new Bash();
 	const tools = createToolRegistry(bash, session.fs, session.tools);
@@ -76,14 +77,42 @@ async function main(): Promise<void> {
 		tools,
 		provider,
 		config: {
+			systemPrompt: buildSystemPrompt({
+				customPrompt: args.systemPrompt ?? undefined,
+				appendSystemPrompt: args.appendSystemPrompt ?? undefined,
+			}),
 			maxRetries: 3,
 		},
 	});
 
-	if (args.print && args.prompt) {
+	if (args.prompt && outputMode !== "text") {
 		try {
 			const response = await agent.prompt(args.prompt);
-			console.log(response.content);
+			if (outputMode === "json") {
+				console.log(
+					JSON.stringify(
+						{
+							content: response.content,
+							toolCalls: response.toolCalls ?? [],
+							sessionId,
+						},
+						null,
+						2
+					)
+				);
+			} else {
+				console.log(
+					JSON.stringify({
+						jsonrpc: "2.0",
+						id: 1,
+						result: {
+							content: response.content,
+							toolCalls: response.toolCalls ?? [],
+							sessionId,
+						},
+					})
+				);
+			}
 		} catch (error) {
 			console.error("Error:", error instanceof Error ? error.message : String(error));
 			process.exit(1);
@@ -91,6 +120,11 @@ async function main(): Promise<void> {
 			await session.close();
 		}
 		return;
+	}
+
+	if (!args.prompt && outputMode !== "text") {
+		console.error("--mode json/rpc requires a prompt");
+		process.exit(1);
 	}
 
 	if (args.prompt) {

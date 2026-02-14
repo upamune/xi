@@ -3,9 +3,15 @@ import { NAME, VERSION } from "./config/index.js";
 
 export interface CliArgs {
 	continue: boolean;
-	resume: string | null;
+	resume: boolean;
+	mode: "text" | "json" | "rpc";
+	apiKey: string | null;
+	session: string | null;
+	sessionDir: string | null;
 	provider: string | null;
 	model: string | null;
+	systemPrompt: string | null;
+	appendSystemPrompt: string | null;
 	noSession: boolean;
 	print: boolean;
 	help: boolean;
@@ -23,13 +29,33 @@ export function parseCliArgs(args: string[] = process.argv.slice(2)): CliArgs {
 				default: false,
 			},
 			resume: {
-				type: "string",
+				type: "boolean",
 				short: "r",
+				default: false,
+			},
+			mode: {
+				type: "string",
+				default: "text",
+			},
+			"api-key": {
+				type: "string",
+			},
+			session: {
+				type: "string",
+			},
+			"session-dir": {
+				type: "string",
 			},
 			provider: {
 				type: "string",
 			},
 			model: {
+				type: "string",
+			},
+			"system-prompt": {
+				type: "string",
+			},
+			"append-system-prompt": {
 				type: "string",
 			},
 			"no-session": {
@@ -59,9 +85,15 @@ export function parseCliArgs(args: string[] = process.argv.slice(2)): CliArgs {
 
 	return {
 		continue: values.continue,
-		resume: values.resume ?? null,
+		resume: values.resume,
+		mode: values.mode as "text" | "json" | "rpc",
+		apiKey: values["api-key"] ?? null,
+		session: values.session ?? null,
+		sessionDir: values["session-dir"] ?? null,
 		provider: values.provider ?? null,
 		model: values.model ?? null,
+		systemPrompt: values["system-prompt"] ?? null,
+		appendSystemPrompt: values["append-system-prompt"] ?? null,
 		noSession: values["no-session"],
 		print: values.print,
 		help: values.help,
@@ -78,9 +110,15 @@ USAGE:
 
 OPTIONS:
   -c, --continue      Continue from last session
-  -r, --resume <ID>   Resume specific session by ID
+  -r, --resume        Resume an existing session
+  --mode <MODE>       Output mode (text, json, rpc)
+  --api-key <KEY>     Override provider API key
+  --session <ID>      Session ID to load or create
+  --session-dir <DIR> Session directory root
   --provider <NAME>   LLM provider (anthropic, openai, kimi)
   --model <MODEL>     Model to use
+  --system-prompt <TEXT>         Replace default system prompt
+  --append-system-prompt <TEXT>  Append instructions to system prompt
   --no-session        Run without creating a session
   -p, --print         Print mode (non-interactive, output only)
   -h, --help          Show this help message
@@ -90,7 +128,7 @@ EXAMPLES:
   zi "Write a hello world program"
   zi -c "Add error handling"
   zi --provider openai --model gpt-4 "Explain this code"
-  zi -r abc123 "Continue from session"
+  zi --resume --session abc123 "Continue from session"
 `);
 }
 

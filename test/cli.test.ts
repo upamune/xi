@@ -67,25 +67,67 @@ describe("parseCliArgs", () => {
 	});
 
 	describe("--resume/-r flag", () => {
-		test("should parse --resume with value", () => {
-			const result = parseCliArgs(["--resume", "abc123"]);
-			expect(result.resume).toBe("abc123");
+		test("should parse --resume flag", () => {
+			const result = parseCliArgs(["--resume"]);
+			expect(result.resume).toBe(true);
 		});
 
-		test("should parse -r short flag with value", () => {
-			const result = parseCliArgs(["-r", "xyz789"]);
-			expect(result.resume).toBe("xyz789");
+		test("should parse -r short flag", () => {
+			const result = parseCliArgs(["-r"]);
+			expect(result.resume).toBe(true);
 		});
 
-		test("should default resume to null", () => {
+		test("should default resume to false", () => {
 			const result = parseCliArgs([]);
-			expect(result.resume).toBeNull();
+			expect(result.resume).toBe(false);
 		});
 
 		test("should combine resume with prompt", () => {
-			const result = parseCliArgs(["--resume", "session1", "continue work"]);
-			expect(result.resume).toBe("session1");
+			const result = parseCliArgs(["--resume", "continue work"]);
+			expect(result.resume).toBe(true);
 			expect(result.prompt).toBe("continue work");
+		});
+	});
+
+	describe("--mode flag", () => {
+		test("should parse --mode json", () => {
+			const result = parseCliArgs(["--mode", "json"]);
+			expect(result.mode).toBe("json");
+		});
+
+		test("should default mode to text", () => {
+			const result = parseCliArgs([]);
+			expect(result.mode).toBe("text");
+		});
+	});
+
+	describe("--api-key flag", () => {
+		test("should parse --api-key flag", () => {
+			const result = parseCliArgs(["--api-key", "test-key"]);
+			expect(result.apiKey).toBe("test-key");
+		});
+
+		test("should default apiKey to null", () => {
+			const result = parseCliArgs([]);
+			expect(result.apiKey).toBeNull();
+		});
+	});
+
+	describe("--session and --session-dir flags", () => {
+		test("should parse --session flag", () => {
+			const result = parseCliArgs(["--session", "abc123"]);
+			expect(result.session).toBe("abc123");
+		});
+
+		test("should parse --session-dir flag", () => {
+			const result = parseCliArgs(["--session-dir", "/tmp/zi"]);
+			expect(result.sessionDir).toBe("/tmp/zi");
+		});
+
+		test("should default session and sessionDir to null", () => {
+			const result = parseCliArgs([]);
+			expect(result.session).toBeNull();
+			expect(result.sessionDir).toBeNull();
 		});
 	});
 
@@ -203,9 +245,9 @@ describe("parseCliArgs", () => {
 		});
 
 		test("should handle continue with resume", () => {
-			const result = parseCliArgs(["-c", "-r", "session42", "keep working"]);
+			const result = parseCliArgs(["-c", "-r", "keep working"]);
 			expect(result.continue).toBe(true);
-			expect(result.resume).toBe("session42");
+			expect(result.resume).toBe(true);
 			expect(result.prompt).toBe("keep working");
 		});
 
@@ -230,7 +272,11 @@ describe("parseCliArgs", () => {
 			const result = parseCliArgs([]);
 			expect(result).toEqual({
 				continue: false,
-				resume: null,
+				resume: false,
+				mode: "text",
+				apiKey: null,
+				session: null,
+				sessionDir: null,
 				provider: null,
 				model: null,
 				systemPrompt: null,
@@ -266,7 +312,11 @@ USAGE:
 
 OPTIONS:
   -c, --continue      Continue from last session
-  -r, --resume <ID>   Resume specific session by ID
+  -r, --resume        Resume an existing session
+  --mode <MODE>       Output mode (text, json, rpc)
+  --api-key <KEY>     Override provider API key
+  --session <ID>      Session ID to load or create
+  --session-dir <DIR> Session directory root
   --provider <NAME>   LLM provider (anthropic, openai, kimi)
   --model <MODEL>     Model to use
   --system-prompt <TEXT>         Replace default system prompt
@@ -280,7 +330,7 @@ EXAMPLES:
   zi "Write a hello world program"
   zi -c "Add error handling"
   zi --provider openai --model gpt-4 "Explain this code"
-  zi -r abc123 "Continue from session"
+  zi --resume --session abc123 "Continue from session"
 `,
 		]);
 	});
