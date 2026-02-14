@@ -3,7 +3,7 @@ import { Bash } from "just-bash";
 import { Agent } from "./agent/index.js";
 import { createProvider } from "./agent/provider.js";
 import { createSession, listSessions, sessionExists } from "./agent/session.js";
-import { parseCliArgs, printHelp } from "./cli.js";
+import { parseCliArgs, printHelp, printVersion } from "./cli.js";
 import { loadConfig } from "./config/index.js";
 import { createToolRegistry } from "./tools/index.js";
 import { createTui } from "./tui/index.js";
@@ -21,6 +21,11 @@ async function main(): Promise<void> {
 
 	if (args.help) {
 		printHelp();
+		process.exit(0);
+	}
+
+	if (args.version) {
+		printVersion();
 		process.exit(0);
 	}
 

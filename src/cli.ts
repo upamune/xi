@@ -9,6 +9,7 @@ export interface CliArgs {
 	noSession: boolean;
 	print: boolean;
 	help: boolean;
+	version: boolean;
 	prompt: string | null;
 }
 
@@ -45,6 +46,11 @@ export function parseCliArgs(args: string[] = process.argv.slice(2)): CliArgs {
 				short: "h",
 				default: false,
 			},
+			version: {
+				type: "boolean",
+				short: "v",
+				default: false,
+			},
 		},
 		allowPositionals: true,
 	});
@@ -59,6 +65,7 @@ export function parseCliArgs(args: string[] = process.argv.slice(2)): CliArgs {
 		noSession: values["no-session"],
 		print: values.print,
 		help: values.help,
+		version: values.version,
 		prompt,
 	};
 }
@@ -77,6 +84,7 @@ OPTIONS:
   --no-session        Run without creating a session
   -p, --print         Print mode (non-interactive, output only)
   -h, --help          Show this help message
+  -v, --version       Show version information
 
 EXAMPLES:
   zi "Write a hello world program"

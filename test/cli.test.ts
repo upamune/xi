@@ -157,6 +157,23 @@ describe("parseCliArgs", () => {
 		});
 	});
 
+	describe("--version/-v flag", () => {
+		test("should parse --version flag", () => {
+			const result = parseCliArgs(["--version"]);
+			expect(result.version).toBe(true);
+		});
+
+		test("should parse -v short flag", () => {
+			const result = parseCliArgs(["-v"]);
+			expect(result.version).toBe(true);
+		});
+
+		test("should default version to false", () => {
+			const result = parseCliArgs([]);
+			expect(result.version).toBe(false);
+		});
+	});
+
 	describe("complex flag combinations", () => {
 		test("should parse all flags together", () => {
 			const result = parseCliArgs([
@@ -218,6 +235,7 @@ describe("parseCliArgs", () => {
 				noSession: false,
 				print: false,
 				help: false,
+				version: false,
 				prompt: null,
 			});
 		});
