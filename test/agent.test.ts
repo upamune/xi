@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 import type { ModelMessage, StreamTextResult } from "ai";
-import { Agent, type AgentConfig } from "../src/agent/index.js";
+import { Agent, type AgentConfig, isNonRetryableError } from "../src/agent/index.js";
 import type { LLMProvider } from "../src/agent/provider.js";
 import type { Session } from "../src/agent/session.js";
 import { SessionManager } from "../src/agent/session-manager.js";
@@ -264,6 +264,27 @@ describe("Agent", () => {
 			expect(response.toolCalls).toHaveLength(3);
 		});
 
+		test("should not retry AI_LoadAPIKeyError", async () => {
+			let callCount = 0;
+			streamTextMock = mock(async (_messages: ModelMessage[]) => {
+				callCount++;
+				const err = new Error("API key is required");
+				err.name = "AI_LoadAPIKeyError";
+				throw err;
+			});
+			mockProvider.streamText = streamTextMock;
+
+			const agent = new Agent({
+				session: mockSession,
+				tools: mockTools,
+				provider: mockProvider,
+				config: { maxRetries: 3 },
+			});
+
+			await expect(agent.prompt("Hello")).rejects.toThrow("API key is required");
+			expect(callCount).toBe(1);
+		});
+
 		test("should append thinking level to system prompt", async () => {
 			const providerSpy = mock(async (options: { systemPrompt?: string }) => {
 				expect(options.systemPrompt).toContain("Thinking level: high");
@@ -304,6 +325,29 @@ describe("Agent", () => {
 
 			expect(messages1).not.toBe(messages2);
 			expect(messages1).toEqual(messages2);
+		});
+	});
+
+	describe("isNonRetryableError", () => {
+		test("should return true for AI_LoadAPIKeyError", () => {
+			const err = new Error("missing key");
+			err.name = "AI_LoadAPIKeyError";
+			expect(isNonRetryableError(err)).toBe(true);
+		});
+
+		test("should return true for MissingApiKeyError", () => {
+			const err = new Error("missing key");
+			err.name = "MissingApiKeyError";
+			expect(isNonRetryableError(err)).toBe(true);
+		});
+
+		test("should return false for generic errors", () => {
+			expect(isNonRetryableError(new Error("network error"))).toBe(false);
+		});
+
+		test("should return false for non-Error values", () => {
+			expect(isNonRetryableError("string error")).toBe(false);
+			expect(isNonRetryableError(null)).toBe(false);
 		});
 	});
 

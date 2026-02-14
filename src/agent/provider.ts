@@ -61,6 +61,7 @@ function createOpenAIProvider(model: string): LLMProvider {
 function createKimiProvider(model: string): LLMProvider {
 	const kimi = createOpenAI({
 		baseURL: KIMI_BASE_URL,
+		apiKey: process.env.KIMI_API_KEY,
 	});
 	return {
 		name: "kimi",
