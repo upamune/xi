@@ -5,9 +5,9 @@ import {
 	type EditorTheme,
 	Markdown,
 	type MarkdownTheme,
+	matchesKey,
 	ProcessTerminal,
 	TUI,
-	matchesKey,
 } from "@mariozechner/pi-tui";
 import type { Agent, AgentResponse } from "@/agent/index.js";
 
