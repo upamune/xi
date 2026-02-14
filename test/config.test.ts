@@ -1,5 +1,7 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { join } from "node:path";
 import {
 	type Config,
 	DEFAULT_CONFIG,
@@ -9,30 +11,26 @@ import {
 	saveConfig,
 } from "../src/config/index.js";
 
-const mockExistsSync = mock((_path: string): boolean => false);
-const mockMkdirSync = mock(() => undefined);
-const mockReadFileSync = mock((_path: string, _encoding: string): string => "{}");
-const mockWriteFileSync = mock((_path: string, _data: string, _encoding: string): void => {});
-
-mock.module("node:fs", () => ({
-	existsSync: mockExistsSync,
-	mkdirSync: mockMkdirSync,
-	readFileSync: mockReadFileSync,
-	writeFileSync: mockWriteFileSync,
-}));
-
 describe("Config", () => {
 	const originalEnv = process.env.ZI_DIR;
+	const tempDir = join("/tmp", `zi-config-test-${Date.now()}`);
+	const tempGlobalConfigDir = join(tempDir, "global-zidir");
+	const tempProjectDir = join(tempDir, "project");
 
 	beforeEach(() => {
-		mockExistsSync.mockReset();
-		mockMkdirSync.mockReset();
-		mockReadFileSync.mockReset();
-		mockWriteFileSync.mockReset();
 		delete process.env.ZI_DIR;
+		if (existsSync(tempDir)) {
+			rmSync(tempDir, { recursive: true, force: true });
+		}
+		mkdirSync(tempDir, { recursive: true });
+		mkdirSync(tempGlobalConfigDir, { recursive: true });
+		mkdirSync(join(tempProjectDir, ".zi"), { recursive: true });
 	});
 
 	afterAll(() => {
+		if (existsSync(tempDir)) {
+			rmSync(tempDir, { recursive: true, force: true });
+		}
 		if (originalEnv !== undefined) {
 			process.env.ZI_DIR = originalEnv;
 		} else {
@@ -42,29 +40,25 @@ describe("Config", () => {
 
 	describe("loadConfig", () => {
 		test("should return default config when no config files exist", async () => {
-			mockExistsSync.mockImplementation(() => false);
+			const emptyConfigDir = join(tempDir, "empty-zidir");
+			mkdirSync(emptyConfigDir, { recursive: true });
+			const emptyProjectDir = join(tempDir, "empty-project");
+			mkdirSync(emptyProjectDir, { recursive: true });
 
-			const config = await loadConfig();
+			process.env.ZI_DIR = emptyConfigDir;
+			const config = await loadConfig(emptyProjectDir);
 
 			expect(config).toEqual(DEFAULT_CONFIG);
 		});
 
 		test("should load global config only", async () => {
 			const globalConfig: Partial<Config> = { provider: "openai", model: "gpt-4" };
-			mockExistsSync.mockImplementation((path: string) => {
-				if (path.includes(".zi/settings.json") && !path.includes("/project")) {
-					return true;
-				}
-				return false;
-			});
-			mockReadFileSync.mockImplementation((path: string) => {
-				if (path.includes(".zi/settings.json") && !path.includes("/project")) {
-					return JSON.stringify(globalConfig);
-				}
-				return "{}";
-			});
+			process.env.ZI_DIR = tempGlobalConfigDir;
+			writeFileSync(join(tempGlobalConfigDir, "settings.json"), JSON.stringify(globalConfig));
 
-			const config = await loadConfig();
+			const emptyProjectDir = join(tempDir, "empty-project");
+			mkdirSync(emptyProjectDir, { recursive: true });
+			const config = await loadConfig(emptyProjectDir);
 
 			expect(config.provider).toBe("openai");
 			expect(config.model).toBe("gpt-4");
@@ -73,20 +67,13 @@ describe("Config", () => {
 
 		test("should load project config only", async () => {
 			const projectConfig: Partial<Config> = { provider: "kimi", thinking: "high" };
-			mockExistsSync.mockImplementation((path: string) => {
-				if (path.includes("/project/.zi/settings.json")) {
-					return true;
-				}
-				return false;
-			});
-			mockReadFileSync.mockImplementation((path: string) => {
-				if (path.includes("/project/.zi/settings.json")) {
-					return JSON.stringify(projectConfig);
-				}
-				return "{}";
-			});
+			writeFileSync(join(tempProjectDir, ".zi", "settings.json"), JSON.stringify(projectConfig));
 
-			const config = await loadConfig("/project");
+			const emptyConfigDir = join(tempDir, "empty-zidir2");
+			mkdirSync(emptyConfigDir, { recursive: true });
+			process.env.ZI_DIR = emptyConfigDir;
+
+			const config = await loadConfig(tempProjectDir);
 
 			expect(config.provider).toBe("kimi");
 			expect(config.thinking).toBe("high");
@@ -96,18 +83,12 @@ describe("Config", () => {
 		test("should merge global and project config with project priority", async () => {
 			const globalConfig: Partial<Config> = { provider: "openai", model: "gpt-4" };
 			const projectConfig: Partial<Config> = { model: "gpt-4o", thinking: "low" };
-			mockExistsSync.mockImplementation(() => true);
-			mockReadFileSync.mockImplementation((path: string) => {
-				if (path.includes("/project/.zi/settings.json")) {
-					return JSON.stringify(projectConfig);
-				}
-				if (path.includes(".zi/settings.json")) {
-					return JSON.stringify(globalConfig);
-				}
-				return "{}";
-			});
 
-			const config = await loadConfig("/project");
+			process.env.ZI_DIR = tempGlobalConfigDir;
+			writeFileSync(join(tempGlobalConfigDir, "settings.json"), JSON.stringify(globalConfig));
+			writeFileSync(join(tempProjectDir, ".zi", "settings.json"), JSON.stringify(projectConfig));
+
+			const config = await loadConfig(tempProjectDir);
 
 			expect(config.provider).toBe("openai");
 			expect(config.model).toBe("gpt-4o");
@@ -115,16 +96,8 @@ describe("Config", () => {
 		});
 
 		test("should handle invalid JSON in config file", async () => {
-			mockExistsSync.mockImplementation(() => true);
-			mockReadFileSync.mockImplementation(() => "not valid json {{{");
-
-			const config = await loadConfig();
-
-			expect(config).toEqual(DEFAULT_CONFIG);
-		});
-
-		test("should handle empty project dir", async () => {
-			mockExistsSync.mockImplementation(() => false);
+			process.env.ZI_DIR = tempGlobalConfigDir;
+			writeFileSync(join(tempGlobalConfigDir, "settings.json"), "not valid json {{{");
 
 			const config = await loadConfig();
 
@@ -134,83 +107,65 @@ describe("Config", () => {
 
 	describe("saveConfig", () => {
 		test("should save to global config by default", async () => {
-			let capturedPath = "";
-			let capturedContent = "";
-			mockExistsSync.mockImplementation(() => true);
-			mockReadFileSync.mockImplementation(() => '{"provider":"openai"}');
-			mockWriteFileSync.mockImplementation((path: string, content: string) => {
-				capturedPath = path;
-				capturedContent = content;
-			});
+			process.env.ZI_DIR = tempGlobalConfigDir;
+			writeFileSync(
+				join(tempGlobalConfigDir, "settings.json"),
+				JSON.stringify({ provider: "openai" })
+			);
 
 			await saveConfig({ model: "gpt-4" });
 
-			expect(capturedPath).toContain(".zi/settings.json");
-			const writtenContent = JSON.parse(capturedContent);
-			expect(writtenContent.model).toBe("gpt-4");
+			const saved = JSON.parse(readFileSync(join(tempGlobalConfigDir, "settings.json"), "utf-8"));
+			expect(saved.model).toBe("gpt-4");
+			expect(saved.provider).toBe("openai");
 		});
 
 		test("should save to project config when scope is project", async () => {
-			let capturedPath = "";
-			mockExistsSync.mockImplementation(() => true);
-			mockReadFileSync.mockImplementation(() => "{}");
-			mockWriteFileSync.mockImplementation((path: string) => {
-				capturedPath = path;
-			});
+			await saveConfig({ provider: "kimi" }, "project", tempProjectDir);
 
-			await saveConfig({ provider: "kimi" }, "project", "/myproject");
-
-			expect(capturedPath).toContain("/myproject/.zi/settings.json");
+			const saved = JSON.parse(readFileSync(join(tempProjectDir, ".zi", "settings.json"), "utf-8"));
+			expect(saved.provider).toBe("kimi");
 		});
 
 		test("should create config directory if not exists", async () => {
-			let mkdirCalled = false;
-			mockExistsSync.mockImplementation(() => false);
-			mockMkdirSync.mockImplementation(() => {
-				mkdirCalled = true;
-			});
-			mockWriteFileSync.mockImplementation(() => {});
+			const newProjectDir = join(tempDir, "new-project");
+			mkdirSync(newProjectDir, { recursive: true });
 
-			await saveConfig({ thinking: "high" });
+			await saveConfig({ thinking: "high" }, "project", newProjectDir);
 
-			expect(mkdirCalled).toBe(true);
+			expect(existsSync(join(newProjectDir, ".zi", "settings.json"))).toBe(true);
 		});
 
 		test("should merge with existing config", async () => {
-			let capturedContent = "";
-			mockExistsSync.mockImplementation(() => true);
-			mockReadFileSync.mockImplementation(() => '{"provider":"openai","model":"gpt-3.5"}');
-			mockWriteFileSync.mockImplementation((_path: string, content: string) => {
-				capturedContent = content;
-			});
+			process.env.ZI_DIR = tempGlobalConfigDir;
+			writeFileSync(
+				join(tempGlobalConfigDir, "settings.json"),
+				JSON.stringify({ provider: "openai", model: "gpt-3.5" })
+			);
 
 			await saveConfig({ model: "gpt-4" });
 
-			const writtenContent = JSON.parse(capturedContent);
-			expect(writtenContent.provider).toBe("openai");
-			expect(writtenContent.model).toBe("gpt-4");
+			const saved = JSON.parse(readFileSync(join(tempGlobalConfigDir, "settings.json"), "utf-8"));
+			expect(saved.provider).toBe("openai");
+			expect(saved.model).toBe("gpt-4");
 		});
 
 		test("should use cwd when projectDir not specified for project scope", async () => {
 			const originalCwd = process.cwd;
-			process.cwd = () => "/testcwd";
-			let capturedPath = "";
-			mockExistsSync.mockImplementation(() => true);
-			mockReadFileSync.mockImplementation(() => "{}");
-			mockWriteFileSync.mockImplementation((path: string) => {
-				capturedPath = path;
-			});
+			process.cwd = () => tempProjectDir;
 
 			await saveConfig({ thinking: "minimal" }, "project");
 
-			expect(capturedPath).toContain("/testcwd/.zi/settings.json");
-
 			process.cwd = originalCwd;
+
+			expect(existsSync(join(tempProjectDir, ".zi", "settings.json"))).toBe(true);
 		});
 	});
 
 	describe("getGlobalConfigDir", () => {
 		test("should return default global config dir using homedir", () => {
+			delete process.env.ZI_DIR;
+
 			const dir = getGlobalConfigDir();
 			expect(dir).toBe(`${homedir()}/.zi`);
 		});

@@ -6,6 +6,7 @@ import { createSession, listSessions, sessionExists } from "./agent/session.js";
 import { parseCliArgs, printHelp } from "./cli.js";
 import { loadConfig } from "./config/index.js";
 import { createToolRegistry } from "./tools/index.js";
+import { createTui } from "./tui/index.js";
 
 async function getLastSessionId(): Promise<string | null> {
 	const sessions = listSessions();
@@ -19,11 +20,6 @@ async function main(): Promise<void> {
 	const args = parseCliArgs();
 
 	if (args.help) {
-		printHelp();
-		process.exit(0);
-	}
-
-	if (!args.prompt && !args.continue && !args.resume) {
 		printHelp();
 		process.exit(0);
 	}
@@ -72,18 +68,23 @@ async function main(): Promise<void> {
 		},
 	});
 
-	if (!args.prompt) {
-		console.log("No prompt provided. Use -h for help.");
-		await session.close();
+	if (args.print && args.prompt) {
+		try {
+			const response = await agent.prompt(args.prompt);
+			console.log(response.content);
+		} catch (error) {
+			console.error("Error:", error instanceof Error ? error.message : String(error));
+			process.exit(1);
+		} finally {
+			await session.close();
+		}
 		return;
 	}
 
-	try {
-		const response = await agent.prompt(args.prompt);
+	if (args.prompt) {
+		try {
+			const response = await agent.prompt(args.prompt);
 
-		if (args.print) {
-			console.log(response.content);
-		} else {
 			console.log("\n--- Response ---");
 			console.log(response.content);
 			if (response.toolCalls && response.toolCalls.length > 0) {
@@ -93,13 +94,31 @@ async function main(): Promise<void> {
 				}
 			}
 			console.log(`\nSession: ${sessionId}`);
+		} catch (error) {
+			console.error("Error:", error instanceof Error ? error.message : String(error));
+			process.exit(1);
+		} finally {
+			await session.close();
 		}
-	} catch (error) {
-		console.error("Error:", error instanceof Error ? error.message : String(error));
-		process.exit(1);
-	} finally {
-		await session.close();
+		return;
 	}
+
+	const tui = createTui(agent, {
+		sessionId,
+		model: config.model,
+		provider: config.provider,
+	});
+
+	const handleShutdown = () => {
+		tui.stop();
+		session.close().catch(() => {});
+		process.exit(0);
+	};
+
+	process.on("SIGINT", handleShutdown);
+	process.on("SIGTERM", handleShutdown);
+
+	tui.start();
 }
 
 main().catch((error) => {

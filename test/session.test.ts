@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
 	createSession,
@@ -13,9 +13,10 @@ describe("Session", () => {
 	const tempDir = join("/tmp", `zi-session-test-${Date.now()}`);
 
 	beforeEach(() => {
-		if (!existsSync(tempDir)) {
+		if (existsSync(tempDir)) {
 			rmSync(tempDir, { recursive: true, force: true });
 		}
+		mkdirSync(tempDir, { recursive: true });
 	});
 
 	afterEach(() => {
