@@ -29,6 +29,12 @@ export interface AgentResponse {
 	}>;
 }
 
+export type StreamEvent =
+	| { type: "text"; text: string }
+	| { type: "reasoning"; text: string }
+	| { type: "tool-call-start"; toolName: string; args: Record<string, unknown> }
+	| { type: "tool-call-end"; toolName: string; args: Record<string, unknown> };
+
 export interface ToolCallResult {
 	toolCallId: string;
 	toolName: string;
@@ -71,7 +77,7 @@ export class Agent {
 		}
 	}
 
-	async prompt(message: string, signal?: AbortSignal): Promise<AgentResponse> {
+	async prompt(message: string, signal?: AbortSignal, onEvent?: (event: StreamEvent) => void): Promise<AgentResponse> {
 		this.session.sessionManager.appendMessage({
 			role: "user",
 			content: message,
@@ -112,11 +118,19 @@ export class Agent {
 					let iterationContent = "";
 					const toolCalls: ToolCallResult[] = [];
 
-					for await (const chunk of stream.textStream) {
+					for await (const part of stream.fullStream) {
 						if (combinedSignal.aborted) {
 							throw new Error("Aborted");
 						}
-						iterationContent += chunk;
+						switch (part.type) {
+							case "text-delta":
+								iterationContent += part.text;
+								onEvent?.({ type: "text", text: part.text });
+								break;
+							case "reasoning-delta":
+								onEvent?.({ type: "reasoning", text: part.text });
+								break;
+						}
 					}
 
 					const result = await stream;
@@ -147,7 +161,9 @@ export class Agent {
 						}
 
 						const toolArgs = getToolArgs(call);
+						onEvent?.({ type: "tool-call-start", toolName, args: toolArgs });
 						const toolResult = await tool.execute(toolArgs);
+						onEvent?.({ type: "tool-call-end", toolName, args: toolArgs });
 
 						const toolCallId = call.toolCallId ?? `${toolName}-${Date.now()}`;
 						toolCalls.push({
