@@ -1,0 +1,138 @@
+Implement the following plan:
+
+# アシスタント応答のストリーミング表示
+
+## Context
+現在 `Agent.prompt()` は内部で `streamText` を使い `textStream` のチャンクを受け取っているが、
+TUI 側には全応答完了後に一括で返している。
+チャンクをリアルタイムに TUI へ渡し、テキストが逐次表示されるようにする。
+
+## 変更対象
+- `src/agent/index.ts` — `prompt()` に `onChunk` コールバックを追加
+- `src/tui/index.ts` — MessageArea にストリーミングメッセージ機能を追加、handleSubmit を改修
+
+## 変更内容
+
+### 1. Agent.prompt() に onChunk コールバックを追加
+
+`src/agent/index.ts`
+
+```typescript
+// Before
+async prompt(message: string, signal?: AbortSignal): Promise<AgentResponse>
+
+// After
+async prompt(message: string, signal?: AbortSignal, onChunk?: (chunk: string) => void): Promise<AgentResponse>
+```
+
+`for await (const chunk of stream.textStream)` ループ内で `onChunk?.(chunk)` を呼ぶ:
+
+```typescript
+for await (const chunk of stream.textStream) {
+  if (combinedSignal.aborted) {
+    throw new Error("Aborted");
+  }
+  iterationContent += chunk;
+  onChunk?.(chunk);        // ← 追加
+}
+```
+
+既存の呼び出し元（src/index.ts の2箇所、test/agent.test.ts の15箇所）は
+第3引数を渡していないのでそのまま動作する。
+
+### 2. MessageArea にストリーミングメッセージ機能を追加
+
+`src/tui/index.ts` の MessageArea に以下メソッドを追加:
+
+- `startStreamingMessage()`: 空の assistant メッセージを追加し `streaming = true` にする
+- `appendToStream(chunk: string)`: 最後のメッセージの content にチャンクを追記する
+- `finishStreaming()`: `streaming = false` にする
+
+### 3. handleSubmit のフロー改修
+
+```typescript
+private async handleSubmit(text: string): Promise<void> {
+  if (!text.trim()) return;
+
+  this.messageArea.addMessage({ role: "user", content: text });
+  this.editor.setText("");
+  this.messageArea.startThinking();
+  this.statusBar.setStatus("Thinking...");
+  this.tui.requestRender();
+
+  let streamStarted = false;
+
+  try {
+    const response = await this.agent.prompt(text, undefined, (chunk: string) => {
+      if (!streamStarted) {
+        streamStarted = true;
+        this.messageArea.stopThinking();
+        this.messageArea.startStreamingMessage();
+      }
+      this.messageArea.appendToStream(chunk);
+      this.tui.requestRender();
+    });
+
+    if (!streamStarted) {
+      // チャンクが来なかった場合（空レスポンス等）
+      this.messageArea.stopThinking();
+      this.messageArea.addMessage({ role: "assistant", content: response.content });
+    } else {
+      this.messageArea.finishStreaming();
+    }
+    this.statusBar.setStatus("Ready");
+  } catch (error) {
+    this.messageArea.stopThinking();
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (streamStarted) {
+      this.messageArea.finishStreaming();
+    }
+    this.messageArea.addMessage({ role: "assistant", content: `Error: ${errorMessage}` });
+    this.statusBar.setStatus("Error");
+  }
+
+  this.tui.requestRender();
+}
+```
+
+ポイント:
+- 最初のチャンク到着時に思考中アニメーション→ストリーミングメッセージに切り替え
+- エラー時はストリーミングを終了し、通常通りエラーメッセージを追加
+
+## 表示イメージ
+```
+You:
+今日の天気は？
+
+ʕ•ᴥ•ʔ:        ← 思考中アニメーション（最初のチャンク到着まで）
+...
+
+↓ チャンク到着開始
+
+ʕ•ᴥ•ʔ:
+今日は晴れ      ← テキストが逐次追加される
+今日は晴れです！  ← 完成
+```
+
+## 検証
+- `bun run typecheck` で型チェック通過
+- `bun test` で全テスト通過（既存テストは onChunk 未指定なので影響なし）
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/masato.yamamoto/.REDACTED.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
+
+---
+
+システムプロンプトで、イライラしない程度に  ʕ•ᴥ•ʔ クマの人格を与えるようにしたい
+
+---
+
+あー、 reasoning いいね。
+
+reasoning は ʕ•ᴥ•ʔ: の横に薄いグレーで随時更新して書き換えていくようにしよう。tool call はいい感じに出したいな
+
+---
+
+[Request interrupted by user for tool use]
