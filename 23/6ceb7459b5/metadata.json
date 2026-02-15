@@ -3,11 +3,8 @@
   "checkpoint_id": "236ceb7459b5",
   "strategy": "manual-commit",
   "branch": "feat/bear-frame-logo",
-  "checkpoints_count": 7,
+  "checkpoints_count": 5,
   "files_touched": [
-    ".xi/sessions/0aa07f7a.db",
-    ".xi/sessions/0aa07f7a.db-shm",
-    ".xi/sessions/0aa07f7a.db-wal",
     ".xi/sessions/516f5527.db",
     ".xi/sessions/516f5527.db-shm",
     ".xi/sessions/516f5527.db-wal",
@@ -41,9 +38,6 @@
     ".xi/sessions/ed8f365c.db",
     ".xi/sessions/ed8f365c.db-shm",
     ".xi/sessions/ed8f365c.db-wal",
-    ".xi/sessions/f00a3def.db",
-    ".xi/sessions/f00a3def.db-shm",
-    ".xi/sessions/f00a3def.db-wal",
     "src/agent/index.ts",
     "src/agent/system-prompt.ts",
     "src/tui/index.ts",
@@ -82,10 +76,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 2624,
-    "cache_creation_tokens": 486981,
-    "cache_read_tokens": 8210230,
-    "output_tokens": 17485,
-    "api_call_count": 126
+    "input_tokens": 2643,
+    "cache_creation_tokens": 528878,
+    "cache_read_tokens": 11175331,
+    "output_tokens": 19355,
+    "api_call_count": 145
   }
 }

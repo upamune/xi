@@ -234,3 +234,27 @@ Session: f00a3def │ anthropic/claude-sonnet-4-5
 ---
 
 commit & push
+
+---
+
+pull request のurl をシエテ
+
+---
+
+In `@src/tui/index.ts` around lines 125 - 131, ZiTui.stop() currently only calls
+statusBar.setStatus("Stopped") and doesn't clear intervals started by
+MessageArea.startThinking() or StatusBar.startAnimation(), causing timer leaks;
+update ZiTui.stop() to call MessageArea.stopThinking() (and
+StatusBar.stopAnimation() if present) to clear their animationInterval/timeouts,
+or otherwise ensure both MessageArea.animationInterval and
+StatusBar.animationInterval are cleared and set to undefined within their
+respective stopX methods so setInterval is always cleaned up when stopping the
+TUI.
+
+---
+
+commit
+
+---
+
+origin/main を rebase して push
