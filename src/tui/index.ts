@@ -453,14 +453,13 @@ export class ZiTui {
 			if (!content) {
 				continue;
 			}
-				this.conversationArea.addMessage({
-					role: message.role,
-					content,
-					toolCalls:
-						message.role === "assistant" ? modelMessageToToolCalls(message) : undefined,
-				});
-			}
+			this.conversationArea.addMessage({
+				role: message.role,
+				content,
+				toolCalls: message.role === "assistant" ? modelMessageToToolCalls(message) : undefined,
+			});
 		}
+	}
 
 	start(): void {
 		this.tui.start();
