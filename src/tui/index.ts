@@ -322,6 +322,9 @@ export class ZiTui {
 		this.tui.addInputListener((data: string) => {
 			if (matchesKey(data, "esc") && this.tui.hasOverlay()) {
 				this.tui.hideOverlay();
+				if (this.helpOverlay) {
+					this.helpOverlay.setHidden(true);
+				}
 				return { consume: true };
 			}
 			if (matchesKey(data, "ctrl+g")) {
