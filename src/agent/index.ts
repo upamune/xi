@@ -77,7 +77,11 @@ export class Agent {
 		}
 	}
 
-	async prompt(message: string, signal?: AbortSignal, onEvent?: (event: StreamEvent) => void): Promise<AgentResponse> {
+	async prompt(
+		message: string,
+		signal?: AbortSignal,
+		onEvent?: (event: StreamEvent) => void
+	): Promise<AgentResponse> {
 		this.session.sessionManager.appendMessage({
 			role: "user",
 			content: message,

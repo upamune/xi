@@ -90,7 +90,10 @@ class Header implements Component {
 			return [""];
 		}
 
-		const left = this.inFlight ? "\x1b[1;38;5;118mʕ•ᴥ•ʔ xi ● live\x1b[0m" : "\x1b[1;38;5;117mʕ•ᴥ•ʔ xi\x1b[0m";
+		const ver = `\x1b[2;38;5;245mv${VERSION}\x1b[0m`;
+		const left = this.inFlight
+			? `\x1b[1;38;5;118mʕ•ᴥ•ʔ xi\x1b[0m ${ver} \x1b[1;38;5;118m● live\x1b[0m`
+			: `\x1b[1;38;5;117mʕ•ᴥ•ʔ xi\x1b[0m ${ver}`;
 		const right = `\x1b[2;38;5;252m${this.provider}/${this.model}\x1b[0m`;
 		const session = `\x1b[2;38;5;248msession ${this.sessionId}\x1b[0m`;
 		return [
@@ -218,12 +221,16 @@ class ConversationArea implements Component {
 		}
 
 		if (this.thinkingTimer) {
-			const bear = ConversationArea.THINKING_FRAMES[this.thinkingFrame % ConversationArea.THINKING_FRAMES.length];
+			const bear =
+				ConversationArea.THINKING_FRAMES[
+					this.thinkingFrame % ConversationArea.THINKING_FRAMES.length
+				];
 			if (this.reasoningText) {
 				const maxLen = width - 12;
-				const display = this.reasoningText.length > maxLen
-					? `…${this.reasoningText.slice(-(maxLen - 1))}`
-					: this.reasoningText;
+				const display =
+					this.reasoningText.length > maxLen
+						? `…${this.reasoningText.slice(-(maxLen - 1))}`
+						: this.reasoningText;
 				lines.push(`\x1b[1;38;5;117m${bear}\x1b[0m \x1b[2;38;5;245m${display}\x1b[0m`);
 			} else {
 				lines.push(`\x1b[1;38;5;117m${bear}\x1b[0m \x1b[2;38;5;245m...\x1b[0m`);
@@ -253,7 +260,11 @@ class ConversationArea implements Component {
 
 		lines.push(truncateToWidth(`${borderColor}╭─\x1b[0m ${roleLabel}`, width));
 
-		if (this.streaming && this.activeToolCalls.length > 0 && message === this.messages[this.messages.length - 1]) {
+		if (
+			this.streaming &&
+			this.activeToolCalls.length > 0 &&
+			message === this.messages[this.messages.length - 1]
+		) {
 			for (const tcLine of this.renderToolCalls()) {
 				lines.push(truncateToWidth(`${borderColor}│\x1b[0m ${tcLine}`, width));
 			}
@@ -314,13 +325,49 @@ class PromptHint implements Component {
 class StatusBar implements Component {
 	private state: StatusState = { mode: "ready", text: "Ready" };
 	private spinner = "";
+	private frame = 0;
+	private animationTimer: Timer | null = null;
+	private ui: TUI;
+
+	private static readonly READY_INTERVAL_MS = 300;
+	private static readonly BLINK_CYCLE = 15;
+	private static readonly SLEEP_START = 100;
+	private static readonly SLEEP_CYCLE = 10;
+	private static readonly BAR = "\x1b[48;5;236;37m";
+	private static readonly BUSY_BEARS = ["ʕ•ᴥ•ʔ", "ʕ·ᴥ·ʔ", "ʕ˘ᴥ˘ʔ", "ʕ-ᴥ-ʔ", "ʕ˘ᴥ˘ʔ", "ʕ·ᴥ·ʔ"];
+	private busyFrame = 0;
+
+	constructor(ui: TUI) {
+		this.ui = ui;
+	}
 
 	setStatus(state: StatusState): void {
+		this.stopAnimation();
 		this.state = state;
+		this.frame = 0;
+		this.busyFrame = 0;
+		if (state.mode === "ready") {
+			this.startAnimation(StatusBar.READY_INTERVAL_MS);
+		}
 	}
 
 	setSpinner(spinner: string): void {
 		this.spinner = spinner;
+		this.busyFrame++;
+	}
+
+	stopAnimation(): void {
+		if (this.animationTimer) {
+			clearInterval(this.animationTimer);
+			this.animationTimer = null;
+		}
+	}
+
+	private startAnimation(ms: number): void {
+		this.animationTimer = setInterval(() => {
+			this.frame++;
+			this.ui.requestRender();
+		}, ms);
 	}
 
 	invalidate(): void {}
@@ -329,23 +376,37 @@ class StatusBar implements Component {
 		if (width <= 0) {
 			return [""];
 		}
-		const modeStyled =
-			this.state.mode === "busy"
-				? "\x1b[1;30;48;5;215m BUSY \x1b[0m"
-				: this.state.mode === "error"
-					? "\x1b[1;37;48;5;124m ERROR \x1b[0m"
-					: this.state.mode === "info"
-						? "\x1b[1;30;48;5;151m INFO \x1b[0m"
-						: "\x1b[1;30;48;5;153m READY \x1b[0m";
-		const spinner = this.state.mode === "busy" && this.spinner ? ` ${this.spinner}` : "";
-		const text = `${modeStyled}${spinner} ${this.state.text}`;
-		return [
-			`\x1b[48;5;236m${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`,
-			truncateToWidth(
-				"\x1b[2;38;5;244mCtrl+L clear chat  Ctrl+D exit when input empty\x1b[0m",
-				width
-			),
-		];
+		const S = StatusBar.BAR;
+
+		if (this.state.mode === "busy") {
+			const bearIdx = Math.floor(this.busyFrame / 2) % StatusBar.BUSY_BEARS.length;
+			const bear = StatusBar.BUSY_BEARS[bearIdx];
+			const sp = this.spinner ? ` ${this.spinner}` : "";
+			const text = ` ${bear}${sp} ${this.state.text}`;
+			return [`${S}${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`];
+		}
+
+		if (this.state.mode === "ready") {
+			if (this.frame >= StatusBar.SLEEP_START) {
+				const zzz = "z".repeat(
+					Math.min(((this.frame - StatusBar.SLEEP_START) % StatusBar.SLEEP_CYCLE) + 1, 3)
+				);
+				const text = ` ʕ-ᴥ-ʔ < ${zzz}`;
+				return [`${S}${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`];
+			}
+			const blink = this.frame % StatusBar.BLINK_CYCLE >= StatusBar.BLINK_CYCLE - 1;
+			const bear = blink ? "ʕ-ᴥ-ʔ" : "ʕ•ᴥ•ʔ";
+			const text = ` ${bear} < ${this.state.text}`;
+			return [`${S}${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`];
+		}
+
+		if (this.state.mode === "error") {
+			const text = ` ʕ>ᴥ<ʔ < ${this.state.text}`;
+			return [`${S}${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`];
+		}
+
+		const text = ` ʕ•ᴥ•ʔ < ${this.state.text}`;
+		return [`${S}${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`];
 	}
 }
 
@@ -407,7 +468,7 @@ export class ZiTui {
 		this.conversationArea = new ConversationArea(this.tui);
 		this.promptHint = new PromptHint();
 		this.editor = new Editor(this.tui, DEFAULT_EDITOR_THEME, { paddingX: 1 });
-		this.statusBar = new StatusBar();
+		this.statusBar = new StatusBar(this.tui);
 
 		this.container = new Container();
 		this.container.addChild(this.header);
@@ -625,6 +686,7 @@ export class ZiTui {
 
 	stop(): void {
 		this.stopSpinner();
+		this.statusBar.stopAnimation();
 		this.conversationArea.stopThinking();
 		this.tui.stop();
 	}
