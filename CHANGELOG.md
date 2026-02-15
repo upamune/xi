@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.1.3](https://github.com/upamune/xi/compare/v0.1.2...v0.1.3) - 2026-02-15
+- feat: 起動ロゴをくま四隅フレーム + figlet xi に変更 by @upamune in https://github.com/upamune/xi/pull/14
+
 ## [v0.1.2](https://github.com/upamune/xi/compare/v0.1.1...v0.1.2) - 2026-02-15
 - Add polished GitHub Pages landing page for xi by @upamune in https://github.com/upamune/xi/pull/11
 - feat(tui): redesign terminal UI with polished pi-mono style by @upamune in https://github.com/upamune/xi/pull/13
