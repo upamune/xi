@@ -1,0 +1,128 @@
+[Request interrupted by user for tool use]
+
+---
+
+Implement the following plan:
+
+# MessageArea にくま思考中アニメーションを追加
+
+## Context
+ユーザーが入力を送信してからアシスタント応答が表示されるまでの間、
+MessageArea 内に即座に `ʕ•ᴥ•ʔ:` プレフィックスを表示し、
+思考中であることをアニメーションで示す。
+現在は StatusBar のみで思考中表示しているが、メッセージエリア内にも表示することで
+チャットアプリのタイピングインジケーターのような体験を実現する。
+
+## 変更対象
+- `src/tui/index.ts`
+
+## 変更内容
+
+### 1. MessageArea に思考中アニメーション機能を追加
+
+MessageArea に以下を追加:
+- `ui: TUI` をコンストラクタで受け取る（アニメーション更新のため）
+- `thinking: boolean` 状態フラグ
+- `frame: number` アニメーションフレームカウンタ
+- `animationInterval` タイマー
+- `startThinking()`: 思考中状態を開始、setInterval でフレームを更新し `ui.requestRender()`
+- `stopThinking()`: 思考中状態を停止、タイマークリア
+
+`render()` でメッセージ末尾に思考中アニメーションを描画:
+```typescript
+if (this.thinking) {
+  const frames = ["ʕ•ᴥ•ʔ:", "ʕ·ᴥ·ʔ:", "ʕ˘ᴥ˘ʔ:", "ʕ-ᴥ-ʔ:"];
+  const bear = frames[this.frame % frames.length];
+  lines.push(`\x1b[1;36m${bear}\x1b[0m `);
+  lines.push("\x1b[2m...\x1b[0m");
+  lines.push("");
+}
+```
+
+アニメーション間隔は StatusBar と同じ `800ms` を使用。
+くまの顔フレームも StatusBar.THINKING_FRAMES の顔パターンを流用する。
+
+### 2. ZiTui のコンストラクタで MessageArea に TUI を渡す
+
+```typescript
+// Before
+this.messageArea = new MessageArea();
+
+// After
+this.messageArea = new MessageArea(this.tui);
+```
+
+### 3. handleSubmit のフロー変更
+
+```typescript
+private async handleSubmit(text: string): Promise<void> {
+  if (!text.trim()) return;
+
+  this.messageArea.addMessage({ role: "user", content: text });
+  this.editor.setText("");
+  this.messageArea.startThinking();       // ← 追加: 即座にくまアニメーション開始
+  this.statusBar.setStatus("Thinking...");
+  this.tui.requestRender();
+
+  try {
+    const response = await this.agent.prompt(text);
+    this.messageArea.stopThinking();       // ← 追加: アニメーション停止
+    this.messageArea.addMessage({ role: "assistant", content: response.content });
+    this.statusBar.setStatus("Ready");
+  } catch (error) {
+    this.messageArea.stopThinking();       // ← 追加: アニメーション停止
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    this.messageArea.addMessage({ role: "assistant", content: `Error: ${errorMessage}` });
+    this.statusBar.setStatus("Error");
+  }
+
+  this.tui.requestRender();
+}
+```
+
+## 表示イメージ
+```
+You:
+今日の天気は？
+
+ʕ•ᴥ•ʔ:        ← 即座に表示、顔がアニメーション
+...             ← (ʕ·ᴥ·ʔ: → ʕ˘ᴥ˘ʔ: → ʕ-ᴥ-ʔ: とループ)
+
+↓ 応答到着後
+
+ʕ•ᴥ•ʔ:
+今日は晴れです！
+```
+
+## 検証
+- `bun run typecheck` で型チェック通過
+- `bun test` で全テスト通過
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/masato.yamamoto/.REDACTED.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
+
+---
+
+push
+
+---
+
+commit
+
+---
+
+push
+
+---
+
+これって stream でレスポンス返ってこないの??
+
+---
+
+お願い！
+
+---
+
+[Request interrupted by user for tool use]

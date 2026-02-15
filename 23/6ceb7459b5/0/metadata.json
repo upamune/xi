@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "236ceb7459b5",
+  "session_id": "498452ad-b1f5-44f2-8422-bd44e32b937d",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-15T15:37:48.630919Z",
+  "branch": "feat/bear-frame-logo",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "src/tui/index.ts"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 35,
+    "cache_creation_tokens": 66646,
+    "cache_read_tokens": 1010131,
+    "output_tokens": 6870,
+    "api_call_count": 23
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-15T15:37:48.522348Z",
+    "agent_lines": 157,
+    "human_added": 37,
+    "human_modified": 3,
+    "human_removed": 0,
+    "total_committed": 197,
+    "agent_percentage": 79.69543147208121
+  },
+  "transcript_path": ".claude/projects/-Users-masato-yamamoto-ghq-github-com-upamune-xi/498452ad-b1f5-44f2-8422-bd44e32b937d.jsonl"
+}
