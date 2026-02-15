@@ -453,12 +453,14 @@ export class ZiTui {
 			if (!content) {
 				continue;
 			}
-			this.conversationArea.addMessage({
-				role: message.role,
-				content,
-			});
+				this.conversationArea.addMessage({
+					role: message.role,
+					content,
+					toolCalls:
+						message.role === "assistant" ? modelMessageToToolCalls(message) : undefined,
+				});
+			}
 		}
-	}
 
 	start(): void {
 		this.tui.start();
@@ -507,7 +509,8 @@ function formatArgValue(value: unknown): string {
 	if (typeof value === "object") {
 		return "{...}";
 	}
-	return JSON.stringify(value);
+	const serialized = JSON.stringify(value);
+	return serialized === undefined ? String(value) : serialized;
 }
 
 function modelMessageToText(message: ModelMessage): string {
@@ -527,6 +530,48 @@ function modelMessageToText(message: ModelMessage): string {
 		}
 	}
 	return chunks.join("\n");
+}
+
+function modelMessageToToolCalls(
+	message: ModelMessage
+): Array<{ name: string; args: Record<string, unknown> }> | undefined {
+	const maybeMessage = message as {
+		toolInvocations?: unknown;
+	};
+	if (!Array.isArray(maybeMessage.toolInvocations)) {
+		return undefined;
+	}
+
+	const toolCalls: Array<{ name: string; args: Record<string, unknown> }> = [];
+	const seen = new Set<string>();
+
+	for (const invocation of maybeMessage.toolInvocations) {
+		if (!invocation || typeof invocation !== "object") {
+			continue;
+		}
+		const item = invocation as {
+			toolCallId?: unknown;
+			toolName?: unknown;
+			args?: unknown;
+		};
+		if (typeof item.toolName !== "string" || typeof item.args !== "object" || item.args === null) {
+			continue;
+		}
+		const key =
+			typeof item.toolCallId === "string"
+				? item.toolCallId
+				: `${item.toolName}:${JSON.stringify(item.args)}`;
+		if (seen.has(key)) {
+			continue;
+		}
+		seen.add(key);
+		toolCalls.push({
+			name: item.toolName,
+			args: item.args as Record<string, unknown>,
+		});
+	}
+
+	return toolCalls.length > 0 ? toolCalls : undefined;
 }
 
 export function createTui(agent: Agent, options: TuiOptions): ZiTui {
