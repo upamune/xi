@@ -14,7 +14,8 @@ import {
 	wrapTextWithAnsi,
 } from "@mariozechner/pi-tui";
 import type { ModelMessage } from "ai";
-import type { Agent, AgentResponse } from "@/agent/index.js";
+import type { Agent, AgentResponse, StreamEvent } from "@/agent/index.js";
+import { VERSION } from "@/config/index.js";
 
 export interface TuiOptions {
 	sessionId: string;
@@ -89,7 +90,10 @@ class Header implements Component {
 			return [""];
 		}
 
-		const left = this.inFlight ? "\x1b[1;38;5;118mzi ● live\x1b[0m" : "\x1b[1;38;5;117mzi\x1b[0m";
+		const ver = `\x1b[2;38;5;245mv${VERSION}\x1b[0m`;
+		const left = this.inFlight
+			? `\x1b[1;38;5;118mʕ•ᴥ•ʔ xi\x1b[0m ${ver} \x1b[1;38;5;118m● live\x1b[0m`
+			: `\x1b[1;38;5;117mʕ•ᴥ•ʔ xi\x1b[0m ${ver}`;
 		const right = `\x1b[2;38;5;252m${this.provider}/${this.model}\x1b[0m`;
 		const session = `\x1b[2;38;5;248msession ${this.sessionId}\x1b[0m`;
 		return [
@@ -100,8 +104,27 @@ class Header implements Component {
 	}
 }
 
+interface ActiveToolCall {
+	toolName: string;
+	args: Record<string, unknown>;
+	done: boolean;
+}
+
 class ConversationArea implements Component {
 	private messages: MessageItem[] = [];
+	private streaming = false;
+	private reasoningText = "";
+	private activeToolCalls: ActiveToolCall[] = [];
+	private thinkingFrame = 0;
+	private thinkingTimer: Timer | null = null;
+	private ui: TUI;
+
+	private static readonly THINKING_FRAMES = ["ʕ•ᴥ•ʔ", "ʕ·ᴥ·ʔ", "ʕ˘ᴥ˘ʔ", "ʕ-ᴥ-ʔ"];
+	private static readonly THINKING_INTERVAL_MS = 600;
+
+	constructor(ui: TUI) {
+		this.ui = ui;
+	}
 
 	addMessage(message: MessageItem): void {
 		this.messages.push(message);
@@ -115,6 +138,62 @@ class ConversationArea implements Component {
 		return this.messages.length;
 	}
 
+	startStreaming(): void {
+		this.messages.push({ role: "assistant", content: "" });
+		this.streaming = true;
+	}
+
+	appendToStream(chunk: string): void {
+		if (!this.streaming || this.messages.length === 0) return;
+		this.messages[this.messages.length - 1].content += chunk;
+	}
+
+	finishStreaming(): void {
+		this.streaming = false;
+	}
+
+	setReasoning(text: string): void {
+		this.reasoningText += text;
+		const lines = this.reasoningText.split("\n");
+		this.reasoningText = lines[lines.length - 1];
+	}
+
+	clearReasoning(): void {
+		this.reasoningText = "";
+	}
+
+	addToolCall(toolName: string, args: Record<string, unknown>): void {
+		this.activeToolCalls.push({ toolName, args, done: false });
+	}
+
+	completeToolCall(toolName: string): void {
+		for (let i = this.activeToolCalls.length - 1; i >= 0; i--) {
+			if (this.activeToolCalls[i].toolName === toolName && !this.activeToolCalls[i].done) {
+				this.activeToolCalls[i].done = true;
+				break;
+			}
+		}
+	}
+
+	clearToolCalls(): void {
+		this.activeToolCalls = [];
+	}
+
+	startThinking(): void {
+		this.thinkingFrame = 0;
+		this.thinkingTimer = setInterval(() => {
+			this.thinkingFrame++;
+			this.ui.requestRender();
+		}, ConversationArea.THINKING_INTERVAL_MS);
+	}
+
+	stopThinking(): void {
+		if (this.thinkingTimer) {
+			clearInterval(this.thinkingTimer);
+			this.thinkingTimer = null;
+		}
+	}
+
 	invalidate(): void {}
 
 	render(width: number): string[] {
@@ -122,7 +201,7 @@ class ConversationArea implements Component {
 			return [""];
 		}
 
-		if (this.messages.length === 0) {
+		if (this.messages.length === 0 && !this.thinkingTimer) {
 			return [
 				truncateToWidth("", width),
 				truncateToWidth("\x1b[2;38;5;245mAsk anything. Use Shift+Enter for newline.\x1b[0m", width),
@@ -135,16 +214,61 @@ class ConversationArea implements Component {
 		for (const message of this.messages) {
 			lines.push(...this.renderMessage(message, width));
 		}
+
+		if (this.activeToolCalls.length > 0 && !this.streaming) {
+			lines.push(...this.renderToolCalls());
+			lines.push("");
+		}
+
+		if (this.thinkingTimer) {
+			const bear =
+				ConversationArea.THINKING_FRAMES[
+					this.thinkingFrame % ConversationArea.THINKING_FRAMES.length
+				];
+			if (this.reasoningText) {
+				const maxLen = width - 12;
+				const display =
+					this.reasoningText.length > maxLen
+						? `…${this.reasoningText.slice(-(maxLen - 1))}`
+						: this.reasoningText;
+				lines.push(`\x1b[1;38;5;117m${bear}\x1b[0m \x1b[2;38;5;245m${display}\x1b[0m`);
+			} else {
+				lines.push(`\x1b[1;38;5;117m${bear}\x1b[0m \x1b[2;38;5;245m...\x1b[0m`);
+			}
+			lines.push("");
+		}
+
+		return lines;
+	}
+
+	private renderToolCalls(): string[] {
+		const lines: string[] = [];
+		for (const tc of this.activeToolCalls) {
+			const icon = tc.done ? "✓" : "⟳";
+			const style = tc.done ? "\x1b[2;38;5;245m" : "\x1b[38;5;215m";
+			const argStr = formatToolCallShort(tc.args);
+			lines.push(`${style}  ${icon} ${tc.toolName}(${argStr})\x1b[0m`);
+		}
 		return lines;
 	}
 
 	private renderMessage(message: MessageItem, width: number): string[] {
 		const lines: string[] = [];
 		const roleLabel =
-			message.role === "user" ? "\x1b[1;38;5;121mYOU\x1b[0m" : "\x1b[1;38;5;228mASSISTANT\x1b[0m";
+			message.role === "user" ? "\x1b[1;38;5;121mYOU\x1b[0m" : "\x1b[1;38;5;228mʕ•ᴥ•ʔ\x1b[0m";
 		const borderColor = message.role === "user" ? "\x1b[38;5;36m" : "\x1b[38;5;178m";
 
 		lines.push(truncateToWidth(`${borderColor}╭─\x1b[0m ${roleLabel}`, width));
+
+		if (
+			this.streaming &&
+			this.activeToolCalls.length > 0 &&
+			message === this.messages[this.messages.length - 1]
+		) {
+			for (const tcLine of this.renderToolCalls()) {
+				lines.push(truncateToWidth(`${borderColor}│\x1b[0m ${tcLine}`, width));
+			}
+		}
 
 		const innerWidth = Math.max(6, width - 4);
 		const body = this.renderBody(message, innerWidth);
@@ -201,13 +325,49 @@ class PromptHint implements Component {
 class StatusBar implements Component {
 	private state: StatusState = { mode: "ready", text: "Ready" };
 	private spinner = "";
+	private frame = 0;
+	private animationTimer: Timer | null = null;
+	private ui: TUI;
+
+	private static readonly READY_INTERVAL_MS = 300;
+	private static readonly BLINK_CYCLE = 15;
+	private static readonly SLEEP_START = 100;
+	private static readonly SLEEP_CYCLE = 10;
+	private static readonly BAR = "\x1b[48;5;236;37m";
+	private static readonly BUSY_BEARS = ["ʕ•ᴥ•ʔ", "ʕ·ᴥ·ʔ", "ʕ˘ᴥ˘ʔ", "ʕ-ᴥ-ʔ", "ʕ˘ᴥ˘ʔ", "ʕ·ᴥ·ʔ"];
+	private busyFrame = 0;
+
+	constructor(ui: TUI) {
+		this.ui = ui;
+	}
 
 	setStatus(state: StatusState): void {
+		this.stopAnimation();
 		this.state = state;
+		this.frame = 0;
+		this.busyFrame = 0;
+		if (state.mode === "ready") {
+			this.startAnimation(StatusBar.READY_INTERVAL_MS);
+		}
 	}
 
 	setSpinner(spinner: string): void {
 		this.spinner = spinner;
+		this.busyFrame++;
+	}
+
+	stopAnimation(): void {
+		if (this.animationTimer) {
+			clearInterval(this.animationTimer);
+			this.animationTimer = null;
+		}
+	}
+
+	private startAnimation(ms: number): void {
+		this.animationTimer = setInterval(() => {
+			this.frame++;
+			this.ui.requestRender();
+		}, ms);
 	}
 
 	invalidate(): void {}
@@ -216,23 +376,37 @@ class StatusBar implements Component {
 		if (width <= 0) {
 			return [""];
 		}
-		const modeStyled =
-			this.state.mode === "busy"
-				? "\x1b[1;30;48;5;215m BUSY \x1b[0m"
-				: this.state.mode === "error"
-					? "\x1b[1;37;48;5;124m ERROR \x1b[0m"
-					: this.state.mode === "info"
-						? "\x1b[1;30;48;5;151m INFO \x1b[0m"
-						: "\x1b[1;30;48;5;153m READY \x1b[0m";
-		const spinner = this.state.mode === "busy" && this.spinner ? ` ${this.spinner}` : "";
-		const text = `${modeStyled}${spinner} ${this.state.text}`;
-		return [
-			`\x1b[48;5;236m${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`,
-			truncateToWidth(
-				"\x1b[2;38;5;244mCtrl+L clear chat  Ctrl+D exit when input empty\x1b[0m",
-				width
-			),
-		];
+		const S = StatusBar.BAR;
+
+		if (this.state.mode === "busy") {
+			const bearIdx = Math.floor(this.busyFrame / 2) % StatusBar.BUSY_BEARS.length;
+			const bear = StatusBar.BUSY_BEARS[bearIdx];
+			const sp = this.spinner ? ` ${this.spinner}` : "";
+			const text = ` ${bear}${sp} ${this.state.text}`;
+			return [`${S}${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`];
+		}
+
+		if (this.state.mode === "ready") {
+			if (this.frame >= StatusBar.SLEEP_START) {
+				const zzz = "z".repeat(
+					Math.min(((this.frame - StatusBar.SLEEP_START) % StatusBar.SLEEP_CYCLE) + 1, 3)
+				);
+				const text = ` ʕ-ᴥ-ʔ < ${zzz}`;
+				return [`${S}${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`];
+			}
+			const blink = this.frame % StatusBar.BLINK_CYCLE >= StatusBar.BLINK_CYCLE - 1;
+			const bear = blink ? "ʕ-ᴥ-ʔ" : "ʕ•ᴥ•ʔ";
+			const text = ` ${bear} < ${this.state.text}`;
+			return [`${S}${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`];
+		}
+
+		if (this.state.mode === "error") {
+			const text = ` ʕ>ᴥ<ʔ < ${this.state.text}`;
+			return [`${S}${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`];
+		}
+
+		const text = ` ʕ•ᴥ•ʔ < ${this.state.text}`;
+		return [`${S}${truncateToWidth(`${text}${" ".repeat(width)}`, width)}\x1b[0m`];
 	}
 }
 
@@ -291,10 +465,10 @@ export class ZiTui {
 		this.tui = new TUI(terminal, true);
 
 		this.header = new Header(options);
-		this.conversationArea = new ConversationArea();
+		this.conversationArea = new ConversationArea(this.tui);
 		this.promptHint = new PromptHint();
 		this.editor = new Editor(this.tui, DEFAULT_EDITOR_THEME, { paddingX: 1 });
-		this.statusBar = new StatusBar();
+		this.statusBar = new StatusBar(this.tui);
 
 		this.container = new Container();
 		this.container.addChild(this.header);
@@ -372,22 +546,66 @@ export class ZiTui {
 		this.header.setInFlight(true);
 		this.promptHint.setDisabled(true);
 		this.startSpinner();
+		this.conversationArea.startThinking();
 		this.statusBar.setStatus({ mode: "busy", text: "Thinking..." });
 		this.tui.requestRender();
 
+		let streamStarted = false;
+
 		try {
-			const response: AgentResponse = await this.agent.prompt(text);
-			this.conversationArea.addMessage({
-				role: "assistant",
-				content: response.content,
-				toolCalls: response.toolCalls?.map((tc) => ({
-					name: tc.name,
-					args: tc.args,
-				})),
+			const response = await this.agent.prompt(text, undefined, (event: StreamEvent) => {
+				switch (event.type) {
+					case "reasoning":
+						this.conversationArea.setReasoning(event.text);
+						this.tui.requestRender();
+						break;
+					case "text":
+						if (!streamStarted) {
+							streamStarted = true;
+							this.conversationArea.stopThinking();
+							this.conversationArea.clearReasoning();
+							this.conversationArea.startStreaming();
+						}
+						this.conversationArea.appendToStream(event.text);
+						this.tui.requestRender();
+						break;
+					case "tool-call-start":
+						this.conversationArea.stopThinking();
+						this.conversationArea.clearReasoning();
+						this.conversationArea.addToolCall(event.toolName, event.args);
+						this.tui.requestRender();
+						break;
+					case "tool-call-end":
+						this.conversationArea.completeToolCall(event.toolName);
+						this.tui.requestRender();
+						break;
+				}
 			});
+
+			if (!streamStarted) {
+				this.conversationArea.stopThinking();
+				this.conversationArea.addMessage({
+					role: "assistant",
+					content: response.content,
+					toolCalls: response.toolCalls?.map((tc) => ({
+						name: tc.name,
+						args: tc.args,
+					})),
+				});
+			} else {
+				this.conversationArea.finishStreaming();
+			}
+			this.conversationArea.clearToolCalls();
+			this.conversationArea.clearReasoning();
 			this.statusBar.setStatus({ mode: "ready", text: "Ready" });
 		} catch (error) {
+			this.conversationArea.stopThinking();
 			const errorMessage = error instanceof Error ? error.message : String(error);
+			if (streamStarted) {
+				this.conversationArea.finishStreaming();
+			}
+			this.conversationArea.clearToolCalls();
+			this.conversationArea.clearReasoning();
 			this.conversationArea.addMessage({
 				role: "assistant",
 				content: `Error: ${errorMessage}`,
@@ -468,6 +686,8 @@ export class ZiTui {
 
 	stop(): void {
 		this.stopSpinner();
+		this.statusBar.stopAnimation();
+		this.conversationArea.stopThinking();
 		this.tui.stop();
 	}
 
@@ -481,6 +701,23 @@ function joinSides(left: string, right: string, width: number): string {
 	const gap = Math.max(1, width - visibleWidth(left) - visibleWidth(right));
 	const line = `${left}${" ".repeat(gap)}${right}`;
 	return truncateToWidth(line, width);
+}
+
+function formatToolCallShort(args: Record<string, unknown>): string {
+	const parts: string[] = [];
+	for (const [key, value] of Object.entries(args)) {
+		if (typeof value === "string") {
+			if (key === "path" || key === "file" || key === "filePath") {
+				const basename = value.split("/").pop() ?? value;
+				parts.push(`"${basename}"`);
+			} else if (value.length > 30) {
+				parts.push(`"${value.slice(0, 27)}..."`);
+			} else {
+				parts.push(`"${value}"`);
+			}
+		}
+	}
+	return parts.join(", ");
 }
 
 function formatToolCall(name: string, args: Record<string, unknown>): string {

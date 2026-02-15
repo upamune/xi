@@ -16,8 +16,11 @@ function createMockStreamResult(
 	text: string,
 	toolCalls?: Array<{ toolCallId: string; toolName: string; input?: Record<string, unknown> }>
 ): StreamTextResult<never, never> {
+	const fullStreamParts: Array<{ type: "text-delta"; text: string }> = text
+		.split("")
+		.map((ch) => ({ type: "text-delta" as const, text: ch }));
 	return {
-		textStream: asyncGenerator(text.split("")),
+		fullStream: asyncGenerator(fullStreamParts),
 		text: Promise.resolve(text),
 		toolCalls: Promise.resolve(toolCalls ?? []),
 		usage: Promise.resolve({ promptTokens: 0, completionTokens: 0, totalTokens: 0 }),
