@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.1.4](https://github.com/upamune/xi/compare/v0.1.3...v0.1.4) - 2026-02-16
+- feat: xi browse サブコマンドを追加 by @upamune in https://github.com/upamune/xi/pull/16
+- docs: README にmise によるインストール方法を追記 by @upamune in https://github.com/upamune/xi/pull/18
+
 ## [v0.1.3](https://github.com/upamune/xi/compare/v0.1.2...v0.1.3) - 2026-02-15
 - feat: 起動ロゴをくま四隅フレーム + figlet xi に変更 by @upamune in https://github.com/upamune/xi/pull/14
 
