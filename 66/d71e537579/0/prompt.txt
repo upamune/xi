@@ -1,0 +1,119 @@
+[Request interrupted by user for tool use]
+
+---
+
+Implement the following plan:
+
+# `xi browse` サブコマンド実装計画
+
+## Context
+
+xiのセッションデータ(`.xi/sessions/*.db`)を手軽に閲覧する手段がない。`xi browse` コマンドでローカルHTTPサーバーを起動し、htmxベースのwebappでセッション一覧・詳細を表示する。
+
+**重要な制約**: 現在のSessionManagerは会話履歴をDBに永続化していない（`_persistEntry()` はno-op）。表示可能なデータは **tool_calls テーブル** と **ファイル変更マニフェスト** のみ。
+
+## ファイル構成
+
+新規ファイル:
+```
+src/browse/
+├── index.ts          # Bun.serve() 起動、ブラウザオープン
+├── routes.ts         # ルーティング + リクエストハンドラ
+├── templates.ts      # HTML テンプレート (layoutHtml, ページ, パーシャル)
+├── session-loader.ts # セッションDB読み取り (readonly)
+└── components.ts     # 再利用HTML コンポーネント関数
+```
+
+変更ファイル:
+- `src/cli.ts` — `"browse"` をコマンド型・パース対象に追加
+- `src/subcommands.ts` — `case "browse"` で `startBrowseServer()` 呼び出し
+
+## 実装ステップ
+
+### Step 1: CLI統合 (`src/cli.ts`, `src/subcommands.ts`)
+
+- `CliCommand.name` 型に `"browse"` 追加
+- `parseCommand()` の includes 配列に `"browse"` 追加（sourceは不要なので `apply` のバリデーションには含めない）
+- `printHelp()` の COMMANDS に `browse` 追加
+- `runSubcommand()` に `case "browse"` 追加
+
+### Step 2: セッションデータ読み取り (`src/browse/session-loader.ts`)
+
+`bun:sqlite` の `Database` を **readonly** モードで直接開き、軽量クエリでメタデータを取得。
+
+```typescript
+interface SessionSummary {
+  id: string;
+  created: Date;     // .db ファイルの ctime
+  modified: Date;    // .db ファイルの mtime
+  fileSize: number;  // .db ファイルサイズ
+  toolCallCount: number;
+  toolNames: string[];
+}
+
+interface SessionDetail extends SessionSummary {
+  toolCalls: ToolCallRecord[];
+  modifiedFiles: string[];
+  deletedFiles: string[];
+}
+```
+
+一覧用:
+- `node:fs.statSync()` で .db ファイルのメタデータ取得
+- `bun:sqlite` で `SELECT count(*) FROM tool_calls` と `SELECT DISTINCT name FROM tool_calls` を直接実行
+- DB を都度 open/close して軽量に保つ
+
+詳細用:
+- `AgentFS.openWith(BunSqliteAdapter)` で開き、`tools.getRecent()` / `tools.getStats()` を使用
+- `OverlayAgentFS.loadManifest()` で変更ファイル一覧取得
+- 変更ファイルの内容は `agentfs.fs.readFile()` で取得
+
+### Step 3: HTMLテンプレート (`src/browse/templates.ts`, `src/browse/components.ts`)
+
+テンプレートリテラルで HTML 生成。CDN から読み込み:
+- htmx: `https://unpkg.com/htmx.org@2.0.4`
+- Tailwind CSS: `https://cdn.tailwindcss.com`
+
+ダークテーマ (bg-gray-950) + くまマスコット (`ʕ•ᴥ•ʔ`)
+
+### Step 4: ルーティング (`src/browse/routes.ts`)
+
+| メソッド | パス | 内容 |
+|---------|------|------|
+| GET | `/` | セッション一覧 (フルページ) |
+| GET | `/sessions/:id` | セッション詳細 (フルページ) |
+| GET | `/sessions/:id/tools` | ツール呼び出し (htmxパーシャル) |
+| GET | `/sessions/:id/files` | ファイル変更 (htmxパーシャル) |
+| GET | `/sessions/:id/files/*path` | ファイル内容 (htmxパーシャル) |
+
+`HX-Request` ヘッダーでフルページ/パーシャルを返し分け。
+
+### Step 5: サーバー起動 (`src/browse/index.ts`)
+
+- デフォルトポート: 3141 (使用中なら +1 して最大10回試行)
+- `Bun.serve()` で HTTP サーバー起動
+- macOS: `open http://localhost:{port}` でブラウザ自動起動
+- `SIGINT` でグレースフルシャットダウン
+- 起動メッセージ: `ʕ•ᴥ•ʔ xi browse running at http://localhost:3141`
+
+### Step 6: テスト (`test/browse.test.ts`)
+
+- ルートハンドラの単体テスト
+- テスト用の一時セッションDBを作成してクエリ確認
+
+## 新規依存
+
+**なし。** Bun 組み込み (`Bun.serve()`, `bun:sqlite`) + CDN (htmx, Tailwind) + 既存依存 (`agentfs-sdk`) のみ。
+
+## 検証方法
+
+1. `bun run dev -- browse` でサーバー起動確認
+2. ブラウザで `http://localhost:3141` にアクセスし、セッション一覧が表示されること
+3. セッションをクリックして詳細ページに遷移、ツール呼び出しとファイル変更が表示されること
+4. htmx によるタブ切り替え（ツール呼び出し / ファイル変更）が動作すること
+5. `bun test ./test/browse.test.ts` でテスト通過
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/masato.yamamoto/.REDACTED.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
