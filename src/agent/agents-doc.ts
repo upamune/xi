@@ -13,6 +13,7 @@ export interface AgentsDoc {
 export interface LoadAgentsDocsOptions {
 	cwd?: string;
 	filenames?: readonly string[];
+	resolveGitRoot?: (startDir: string) => Promise<string | null>;
 }
 
 export interface RenderedAgentsDocs {
@@ -24,7 +25,8 @@ export interface RenderedAgentsDocs {
 export async function loadAgentsDocs(options: LoadAgentsDocsOptions = {}): Promise<AgentsDoc[]> {
 	const cwd = resolve(options.cwd ?? process.cwd());
 	const filenames = options.filenames ?? DEFAULT_AGENTS_FILENAMES;
-	const gitRoot = await findGitRoot(cwd);
+	const resolveGitRoot = options.resolveGitRoot ?? findGitRoot;
+	const gitRoot = await resolveGitRoot(cwd);
 	const searchRoot = gitRoot ?? cwd;
 	const dirs = listDirsFromRoot(searchRoot, cwd);
 	const docs: AgentsDoc[] = [];
@@ -49,14 +51,20 @@ export function renderAgentsDocs(
 	docs: AgentsDoc[],
 	maxBytes: number = DEFAULT_AGENTS_BYTE_BUDGET
 ): RenderedAgentsDocs {
+	const prefix = "Project instructions from AGENTS files:";
+	const prefixBytes = Buffer.byteLength(prefix, "utf-8");
+
 	if (docs.length === 0 || maxBytes <= 0) {
 		return { text: "", truncated: false, files: [] };
 	}
 
 	let text = "";
-	let remaining = maxBytes;
+	let remaining = maxBytes - prefixBytes;
 	const files: string[] = [];
 	let truncated = false;
+	if (remaining <= 0) {
+		return { text: "", truncated: true, files };
+	}
 
 	for (const doc of docs) {
 		const block = `\n\n# ${doc.relativePath}\n${doc.content}`;
@@ -81,7 +89,7 @@ export function renderAgentsDocs(
 	}
 
 	return {
-		text: `Project instructions from AGENTS files:${text}`,
+		text: `${prefix}${text}`,
 		truncated,
 		files,
 	};

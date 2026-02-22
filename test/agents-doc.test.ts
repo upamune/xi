@@ -52,7 +52,10 @@ describe("agents-doc", () => {
 			await writeFile(join(dir, "parent", "AGENTS.md"), "parent", "utf-8");
 			await writeFile(join(dir, "parent", "child", "AGENTS.md"), "child", "utf-8");
 
-			const docs = await loadAgentsDocs({ cwd: join(dir, "parent", "child") });
+			const docs = await loadAgentsDocs({
+				cwd: join(dir, "parent", "child"),
+				resolveGitRoot: async () => null,
+			});
 
 			expect(docs.map((doc) => doc.content)).toEqual(["child"]);
 		} finally {
@@ -70,7 +73,7 @@ describe("agents-doc", () => {
 		];
 		const rendered = renderAgentsDocs(docs, 20);
 		expect(rendered.truncated).toBe(true);
-		expect(rendered.text).toContain("Project instructions from AGENTS files:");
-		expect(rendered.text).not.toContain("1234567890");
+		expect(rendered.text).toBe("");
+		expect(rendered.files).toEqual([]);
 	});
 });
