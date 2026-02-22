@@ -6,6 +6,7 @@ import { openSessionForApply } from "./agent/session.js";
 import { startBrowseServer } from "./browse/index.js";
 import type { CliCommand } from "./cli.js";
 import { getGlobalConfigDir, getProjectConfigPath, loadConfig } from "./config/index.js";
+import { formatSkillsList, setSkillsOff, updateSkillPreference } from "./skills/index.js";
 
 interface PackageEntry {
 	source: string;
@@ -209,6 +210,7 @@ export async function runSubcommand(
 	sessionDir?: string
 ): Promise<void> {
 	const scope: "global" | "local" = command.local ? "local" : "global";
+	const configScope: "global" | "project" = command.local ? "project" : "global";
 	switch (command.name) {
 		case "install":
 			installSource(command.source as string, scope, cwd);
@@ -243,5 +245,28 @@ export async function runSubcommand(
 		case "browse":
 			await startBrowseServer(cwd);
 			return;
+		case "skill": {
+			const action = command.action ?? "list";
+			if (action === "list") {
+				console.log(await formatSkillsList(cwd));
+				return;
+			}
+			if (action === "on") {
+				await setSkillsOff(false, configScope, cwd);
+				console.log(`Skills enabled (${configScope})`);
+				return;
+			}
+			if (action === "off") {
+				await setSkillsOff(true, configScope, cwd);
+				console.log(`Skills disabled (${configScope})`);
+				return;
+			}
+			if (action !== "enable" && action !== "disable") {
+				throw new Error(`Unknown skill action: ${action}`);
+			}
+			await updateSkillPreference(command.source as string, action, configScope, cwd);
+			console.log(`Skill ${action}d: ${command.source} (${configScope})`);
+			return;
+		}
 	}
 }

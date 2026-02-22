@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runSubcommand } from "../src/subcommands.js";
@@ -77,5 +77,16 @@ describe("subcommands", () => {
 		await expect(
 			runSubcommand({ name: "config", source: null, local: false }, join(cwd, "missing"))
 		).rejects.toThrow("Directory not found");
+	});
+
+	test("skill list should succeed", async () => {
+		await runSubcommand({ name: "skill", action: "list", source: null, local: false }, cwd);
+	});
+
+	test("skill enable should persist without error", async () => {
+		await runSubcommand({ name: "skill", action: "enable", source: "qmd", local: true }, cwd);
+		const content = await readFile(join(cwd, ".xi", "settings.json"), "utf-8");
+		const saved = JSON.parse(content) as { enabledSkills?: string[] };
+		expect(saved.enabledSkills).toContain("qmd");
 	});
 });

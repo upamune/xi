@@ -23,6 +23,13 @@ import { loadConfig } from "./config/index.js";
 import { BashFsAdapter } from "./fs/bash-fs-adapter.js";
 import type { OverlayAgentFS } from "./fs/overlay-agentfs.js";
 import { buildPromptFromInputs, expandFileArgs, readStdinIfAvailable } from "./input-ingestion.js";
+import {
+	discoverSkills,
+	renderMentionedSkillContext,
+	renderSkillsSection,
+	resolveSkillSelection,
+	type SkillCatalog,
+} from "./skills/index.js";
 import { runSubcommand } from "./subcommands.js";
 import { createToolRegistry } from "./tools/index.js";
 import { createTui } from "./tui/index.js";
@@ -50,7 +57,8 @@ async function main(): Promise<void> {
 		}
 	}
 
-	const config = await loadConfig();
+	const cwd = args.sessionDir ?? process.cwd();
+	const config = await loadConfig(cwd);
 
 	if (args.provider) {
 		const validProviders: ProviderName[] = ["anthropic", "openai", "kimi"];
@@ -141,13 +149,34 @@ async function main(): Promise<void> {
 			? await loadSession(sessionId, baseDir)
 			: await createSession(sessionId, baseDir);
 
-	const cwd = baseDir ?? process.cwd();
 	const bashFs = new BashFsAdapter(session.fs as OverlayAgentFS, cwd);
 	const bash = new Bash({ fs: bashFs, cwd });
 	const tools = createToolRegistry(bash, session.fs, session.tools, selectedTools.enabledTools);
 	const provider = createProvider(config);
 	const agentsDocs = await loadAgentsDocs({ cwd: process.cwd() });
 	const agentsInstructions = renderAgentsDocs(agentsDocs, DEFAULT_AGENTS_BYTE_BUDGET).text;
+	let skillCatalog: SkillCatalog;
+	try {
+		skillCatalog = await discoverSkills({ cwd });
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		const startedAt = Date.now();
+		const completedAt = Date.now();
+		await session.tools.record(
+			"skills-discovery",
+			startedAt,
+			completedAt,
+			{ cwd },
+			undefined,
+			`discoverSkills failed: ${message}`
+		);
+		skillCatalog = { skills: [], warnings: [`discoverSkills failed: ${message}`], roots: [] };
+	}
+	const skillSelection = resolveSkillSelection(skillCatalog, config, {
+		cliSkillNames: args.skills,
+		noSkills: args.noSkills,
+	});
+	const skillsInstructions = renderSkillsSection(skillSelection);
 
 	const agent = new Agent({
 		session,
@@ -158,7 +187,10 @@ async function main(): Promise<void> {
 				customPrompt: args.systemPrompt ?? undefined,
 				appendSystemPrompt: args.appendSystemPrompt ?? undefined,
 				agentsInstructions: agentsInstructions || undefined,
+				skillsInstructions: skillsInstructions || undefined,
 			}),
+			resolveSystemPromptAppendix: (message: string) =>
+				renderMentionedSkillContext(message, skillSelection),
 			maxRetries: 3,
 			enabledTools: selectedTools.enabledTools,
 			thinking: config.thinking,
@@ -233,6 +265,7 @@ async function main(): Promise<void> {
 		sessionId,
 		model: config.model,
 		provider: config.provider,
+		cwd,
 	});
 
 	const handleShutdown = () => {

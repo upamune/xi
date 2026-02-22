@@ -9,12 +9,20 @@ export interface Config {
 	provider: "anthropic" | "openai" | "kimi";
 	model: string;
 	thinking: "off" | "minimal" | "low" | "medium" | "high";
+	enabledSkills: string[];
+	disabledSkills: string[];
+	skillsOff: boolean;
 }
+
+export type ConfigScope = "global" | "project";
 
 export const DEFAULT_CONFIG: Config = {
 	provider: "anthropic",
 	model: "claude-sonnet-4-5",
 	thinking: "medium",
+	enabledSkills: [],
+	disabledSkills: [],
+	skillsOff: false,
 };
 
 const GLOBAL_CONFIG_DIR = join(homedir(), ".xi");
@@ -68,7 +76,7 @@ export async function loadConfig(projectDir?: string): Promise<Config> {
 
 export async function saveConfig(
 	config: Partial<Config>,
-	scope: "global" | "project" = "global",
+	scope: ConfigScope = "global",
 	projectDir?: string
 ): Promise<void> {
 	const configDir =
@@ -89,6 +97,17 @@ export async function saveConfig(
 
 	const mergedConfig = { ...existingConfig, ...config };
 	writeFileSync(configPath, JSON.stringify(mergedConfig, null, 2), "utf-8");
+}
+
+export async function loadScopedConfig(
+	scope: ConfigScope,
+	projectDir?: string
+): Promise<Partial<Config>> {
+	const configPath =
+		scope === "global"
+			? getConfigPath()
+			: join(projectDir ?? process.cwd(), PROJECT_CONFIG_DIR, "settings.json");
+	return readJsonFile(configPath) ?? {};
 }
 
 export function getGlobalConfigDir(): string {
