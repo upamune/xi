@@ -155,7 +155,10 @@ async function main(): Promise<void> {
 	const bash = new Bash({ fs: bashFs, cwd });
 	const tools = createToolRegistry(bash, session.fs, session.tools, selectedTools.enabledTools);
 	const provider = createProvider(config);
-	const agentsDocs = await loadAgentsDocs({ cwd: startupCwd });
+	const agentsDocs = await loadAgentsDocs({
+		cwd: startupCwd,
+		resolveGitRoot: async () => null,
+	});
 	const agentsInstructions = renderAgentsDocs(agentsDocs, DEFAULT_AGENTS_BYTE_BUDGET).text;
 	let skillCatalog: SkillCatalog;
 	try {

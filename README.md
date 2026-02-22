@@ -91,16 +91,20 @@ xi
 
 ## Session Storage
 
-All session data lives in `.xi/sessions/{session-id}.db`:
+All session data lives in `.xi/sessions/{session-id}.db` in the current project directory:
 
 ```
-.xi/
-├── sessions/
-│   ├── abc123.db      # Session 1
-│   └── def456.db      # Session 2
-├── settings.json      # Global settings
-└── AGENTS.md          # Project context
+project/
+├── .xi/
+│   ├── sessions/
+│   │   ├── abc123.db      # Session 1
+│   │   └── def456.db      # Session 2
+│   └── settings.json      # Project settings (optional)
+└── AGENTS.md              # Project context
 ```
+
+Global settings are stored separately at `~/.xi/settings.json` (or `XI_DIR/settings.json`).
+`AGENTS.md` is loaded only from the directory where `xi` is started (not from parent directories or `.xi/`).
 
 Each SQLite database contains:
 - Complete file system state
